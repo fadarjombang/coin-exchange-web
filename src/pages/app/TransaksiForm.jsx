@@ -90,8 +90,8 @@ export default function TransaksiForm() {
   // Sisa nilai per denom (nilai modal - nilai yang sudah keluar di transaksi sebelumnya)
   const modalKoin = sesi?.modal_koin || {}
   const sisaDenom = DENOM_LIST.reduce((acc, d) => {
-    const modalVal = (modalKoin[d.key] || 0) * d.value  // modal adalah qty * denom
-    const keluarVal = trxSummary.reduce((s, t) => s + (t[d.key] || 0), 0)  // transaksi sudah nilai
+    const modalVal  = (modalKoin[d.key] || 0)  // sudah dalam nilai rupiah (bukan qty)
+    const keluarVal = trxSummary.reduce((s, t) => s + (t[d.key] || 0), 0)
     acc[d.key] = Math.max(0, modalVal - keluarVal)
     return acc
   }, {})

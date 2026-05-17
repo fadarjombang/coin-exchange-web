@@ -155,13 +155,15 @@ export default function SesiDetail() {
 
           <TabsContent value="modal">
             <Card><CardContent className="p-5"><div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {DENOM_LIST.map((d) => (
-                <div key={d.key} className="rounded-lg border p-3 bg-muted/30">
-                  <p className="text-xs text-muted-foreground">{d.label}</p>
-                  <p className="text-lg font-bold">{sesi?.modal_koin?.[d.key] || 0} keping</p>
-                  <p className="text-xs text-muted-foreground">{formatRupiah((sesi?.modal_koin?.[d.key] || 0) * d.value)}</p>
-                </div>
-              ))}
+              {DENOM_LIST.map((d) => {
+                const nilai = sesi?.modal_koin?.[d.key] || 0
+                return (
+                  <div key={d.key} className="rounded-lg border p-3 bg-muted/30">
+                    <p className="text-xs text-muted-foreground mb-1">{d.label}</p>
+                    <p className="text-base font-bold text-primary">{formatRupiah(nilai)}</p>
+                  </div>
+                )
+              })}
             </div></CardContent></Card>
           </TabsContent>
 
