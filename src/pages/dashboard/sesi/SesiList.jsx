@@ -16,6 +16,7 @@ const STATUS_LIST = ['all','draft','pending_approval','active','pending_close','
 
 export default function SesiList() {
   const { role } = useAuth()
+  const roles = Array.isArray(role) ? role : [role]
   const navigate  = useNavigate()
   const [sesi, setSesi]         = useState([])
   const [loading, setLoading]   = useState(true)
@@ -61,7 +62,7 @@ export default function SesiList() {
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><ClipboardList size={20} className="text-primary" /></div>
             <div><h1 className="page-title">Sesi Tugas</h1><p className="page-subtitle">Manajemen sesi operasi lapangan</p></div>
           </div>
-          {role === 'admin' && (
+          {roles.includes('admin') && (
             <Button onClick={() => navigate('/dashboard/sesi/buat')} id="buat-sesi-btn">
               <Plus size={16} /> Buat Sesi
             </Button>

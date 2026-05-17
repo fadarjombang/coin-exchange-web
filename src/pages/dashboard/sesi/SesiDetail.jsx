@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast'
 export default function SesiDetail() {
   const { id }       = useParams()
   const { role, profile } = useAuth()
+  const roles = Array.isArray(role) ? role : [role]
   const navigate     = useNavigate()
   const { toast }    = useToast()
   const [sesi, setSesi]       = useState(null)
@@ -94,10 +95,10 @@ export default function SesiDetail() {
   const rek    = sesi?.rekonsiliasi
   const status = (rawStatus === 'active' && rek) ? 'pending_close' : rawStatus
   
-  const isAdminOrManager = role === 'admin' || role === 'manager'
+  const isAdminOrManager = roles.includes('admin') || roles.includes('manager')
   const canApprove = isAdminOrManager && status === 'pending_approval'
   const canClose   = isAdminOrManager && status === 'pending_close'
-  const canEdit    = role === 'admin' && status === 'draft'
+  const canEdit    = roles.includes('admin') && status === 'draft'
 
   return (
     <DashboardLayout>
