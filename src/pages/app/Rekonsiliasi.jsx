@@ -62,7 +62,8 @@ export default function Rekonsiliasi() {
     setPhoto(await compress(file))
   }
 
-  const sisaTotal      = calculateDenomTotal(sisaKoin)
+  // sisaKoin disimpan sebagai nilai rupiah per denom, total = sum langsung
+  const sisaTotal      = Object.values(sisaKoin).reduce((s, v) => s + (parseInt(v) || 0), 0)
   const totalKoinKeluar = trxList.reduce((s,t)=>s+(t.total_koin_nilai||0),0)
   const totalUangMasuk  = trxList.reduce((s,t)=>s+(t.total_uang_diterima||0),0)
   const expectedSisa    = (sesi?.modal_koin?.total_nilai||0) - totalKoinKeluar
@@ -116,8 +117,17 @@ export default function Rekonsiliasi() {
             <div className="grid grid-cols-2 gap-2">
               {DENOM_LIST.map((d) => (
                 <div key={d.key} className="space-y-1">
-                  <Label className="text-xs">{d.label}</Label>
-                  <Input type="number" min="0" value={sisaKoin[d.key]||0} onChange={(e)=>setSisaKoin((k)=>({...k,[d.key]:parseInt(e.target.value)||0}))} className="h-9"/>
+                  <Label className="text-xs font-medium">{d.label}</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
+                    <Input
+                      type="number" min="0"
+                      value={sisaKoin[d.key] || ''}
+                      placeholder="0"
+                      onChange={(e) => setSisaKoin((k) => ({ ...k, [d.key]: parseInt(e.target.value) || 0 }))}
+                      className="h-9 pl-7"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
