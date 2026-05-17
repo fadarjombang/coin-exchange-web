@@ -21,7 +21,8 @@ import { useToast } from '@/hooks/use-toast'
  * Semua field menyimpan nilai rupiah langsung.
  */
 export default function StokGudang() {
-  const { profile } = useAuth()
+  const { profile, role } = useAuth()
+  const roles = Array.isArray(role) ? role : [role]
   const { toast }   = useToast()
   const [stok, setStok]       = useState(null)
   const [log, setLog]         = useState([])
@@ -82,7 +83,7 @@ export default function StokGudang() {
     finally { setSaving(false) }
   }
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin'
+  const isAdmin = roles.includes('admin') || roles.includes('superadmin')
   const TYPE_BADGE = { keluar_modal: 'destructive', masuk_sisa: 'success', penyesuaian: 'info' }
   const TYPE_LABEL = { keluar_modal: 'Keluar Modal', masuk_sisa: 'Masuk Sisa', penyesuaian: 'Penyesuaian' }
 
