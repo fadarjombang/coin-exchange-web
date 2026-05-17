@@ -84,7 +84,7 @@ export default function TransaksiDetail() {
           {/* Header */}
           <div className="text-center border-b p-4 pb-3">
             <p className="font-bold text-base" style={{ color: '#1e3a5f' }}>BERITA ACARA SERAH TERIMA KOIN</p>
-            <p className="text-xs text-gray-500">Indomaret Finance</p>
+            <p className="text-xs text-gray-500">Indomaret Cabang Jombang</p>
             <p className="text-xs mt-1 text-gray-600">{formatDateTime(t.created_at)}</p>
           </div>
 

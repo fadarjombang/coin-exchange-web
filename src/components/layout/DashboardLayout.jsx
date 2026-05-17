@@ -88,7 +88,7 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
         {!collapsed && (
           <div>
             <p className="text-white font-bold text-sm leading-tight">Tukar Koin</p>
-            <p className="text-blue-300 text-xs">Indomaret Finance</p>
+            <p className="text-blue-300 text-xs">Indomaret Cabang Jombang</p>
           </div>
         )}
       </div>

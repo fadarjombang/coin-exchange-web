@@ -59,7 +59,7 @@ export default function Login() {
             <Coins size={32} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Sistem Tukar Koin</h1>
-          <p className="text-blue-200 text-sm mt-1">Indomaret Finance</p>
+          <p className="text-blue-200 text-sm mt-1">Indomaret Cabang Jombang</p>
         </div>
 
         {/* Card */}
