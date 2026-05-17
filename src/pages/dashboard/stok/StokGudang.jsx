@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { supabaseAdmin } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
@@ -83,7 +82,6 @@ export default function StokGudang() {
     finally { setSaving(false) }
   }
 
-  const { profile } = useAuth()
   const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin'
   const TYPE_BADGE = { keluar_modal: 'destructive', masuk_sisa: 'success', penyesuaian: 'info' }
   const TYPE_LABEL = { keluar_modal: 'Keluar Modal', masuk_sisa: 'Masuk Sisa', penyesuaian: 'Penyesuaian' }
