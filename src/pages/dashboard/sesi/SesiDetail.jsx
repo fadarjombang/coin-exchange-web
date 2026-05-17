@@ -96,7 +96,7 @@ export default function SesiDetail() {
           approved_at: new Date().toISOString(), catatan_approval: catatan
         }).eq('id', id)
         const deducted = DENOM_LIST.filter(d => modalKoin[d.key] > 0).map(d => `${d.label}: -${formatRupiah(modalKoin[d.key])}`).join(', ')
-        toast({ title: '✅ Disetujui', description: `Stok gudang dikurangi: ${deducted || '(tidak ada modal)'}`, variant: 'success' })
+        toast({ title: 'Disetujui', description: `Stok gudang dikurangi: ${deducted || '(tidak ada modal)'}`, variant: 'success' })
 
       } else if (dialog === 'reject') {
         await supabase.from('sesi_tugas').update({ status: 'draft', catatan_approval: catatan }).eq('id', id)
@@ -147,7 +147,7 @@ export default function SesiDetail() {
           status: 'closed', closed_by: profile.id,
           closed_at: new Date().toISOString(), catatan_close: catatan
         }).eq('id', id)
-        toast({ title: '✅ Sesi Ditutup', description: `Koin: +${formatRupiah(deltaKoin)} | Uang besar: +${formatRupiah(deltaUang)}`, variant: 'success' })
+        toast({ title: 'Sesi Ditutup', description: `Koin: +${formatRupiah(deltaKoin)} | Uang besar: +${formatRupiah(deltaUang)}`, variant: 'success' })
 
       } else if (dialog === 'reject_close') {
         await supabase.from('sesi_tugas').update({ status: 'active' }).eq('id', id)
@@ -220,7 +220,7 @@ export default function SesiDetail() {
         .eq('sesi_tugas_id', id)
       if (error) throw error
 
-      toast({ title: '✅ Modal dikoreksi', description: 'Nilai modal koin berhasil diperbarui.' })
+      toast({ title: 'Modal dikoreksi', description: 'Nilai modal koin berhasil diperbarui.' })
       setEditModal(false)
       fetchSesi()
     } catch (err) {
@@ -291,7 +291,7 @@ export default function SesiDetail() {
               {editModal ? (
                 <div className="space-y-4">
                   <p className="text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">
-                    ⚠️ Mode Koreksi Modal — ubah nilai yang salah, sistem akan validasi terhadap stok efektif.
+                    Mode Koreksi Modal — ubah nilai yang salah, sistem akan validasi terhadap stok efektif.
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {DENOM_LIST.map((d) => (

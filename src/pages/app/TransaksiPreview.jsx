@@ -79,7 +79,7 @@ export default function TransaksiPreview() {
     <MobileLayout title="Berita Acara" showBack onBack={() => navigate('/app/toko')}>
       <div className="p-4 space-y-4">
         <Badge variant="success" className="w-full justify-center py-2 text-sm">
-          ✅ Transaksi Berhasil Disimpan
+          Transaksi Berhasil Disimpan
         </Badge>
 
         {/* =================== PRINT AREA =================== */}
@@ -167,8 +167,7 @@ export default function TransaksiPreview() {
                   <span style={{ color: '#1e3a5f' }}>{formatRupiah(t.total_uang_diterima)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-sm text-emerald-700">
-                  <span>SELISIH</span>
-                  <span>Rp 0 ✅</span>
+                  <span>SELISIH</span><span>Rp 0</span>
                 </div>
               </div>
             </div>

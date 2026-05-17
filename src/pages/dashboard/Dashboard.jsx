@@ -145,12 +145,17 @@ export default function Dashboard() {
                         </div>
                         <Progress value={pct} className="h-2" />
                       </div>
-                      <div className="flex flex-wrap gap-1.5 mt-3">
-                        {assigns.map((a) => (
-                          <span key={a.id} className="text-lg" title={ASSIGNMENT_STATUS[a.status]?.label}>
-                            {ASSIGNMENT_STATUS[a.status]?.icon}
-                          </span>
-                        ))}
+                      <div className="flex flex-wrap gap-1 mt-3">
+                        {assigns.map((a) => {
+                          const colors = { pending: 'bg-gray-300', on_progress: 'bg-blue-400', selesai: 'bg-emerald-500', skip: 'bg-red-400' }
+                          return (
+                            <span
+                              key={a.id}
+                              className={`w-2.5 h-2.5 rounded-full ${colors[a.status] || 'bg-gray-200'}`}
+                              title={ASSIGNMENT_STATUS[a.status]?.label}
+                            />
+                          )
+                        })}
                       </div>
                     </CardContent>
                   </Card>

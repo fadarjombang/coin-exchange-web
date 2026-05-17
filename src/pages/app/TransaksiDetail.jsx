@@ -75,7 +75,7 @@ export default function TransaksiDetail() {
     <MobileLayout title="Cetak Ulang Berita Acara" showBack onBack={() => navigate('/app/riwayat')}>
       <div className="p-4 space-y-4">
         <Badge variant="outline" className="w-full justify-center py-2 text-sm text-muted-foreground">
-          🖨️ Cetak Ulang — {toko?.nama_toko}
+          Cetak Ulang — {toko?.nama_toko}
         </Badge>
 
         {/* =================== PRINT AREA =================== */}
@@ -161,7 +161,7 @@ export default function TransaksiDetail() {
                   <span style={{ color: '#1e3a5f' }}>{formatRupiah(t.total_uang_diterima)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-sm text-emerald-700">
-                  <span>SELISIH</span><span>Rp 0 ✅</span>
+                  <span>SELISIH</span><span>Rp 0</span>
                 </div>
               </div>
             </div>

@@ -44,7 +44,7 @@ export default function Riwayat() {
           <Card key={t.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/app/riwayat/${t.id}`)}>
             <CardContent className="p-4 flex items-center gap-3">
               <div className="flex-1"><p className="font-semibold text-sm">{t.toko?.nama_toko}</p><p className="text-xs text-muted-foreground">{t.toko?.kode_toko} · {formatTime(t.created_at)}</p></div>
-              <div className="text-right"><p className="font-bold text-sm">{formatRupiah(t.total_koin_nilai)}</p><Badge variant="success" className="text-xs">✓ Seimbang</Badge></div>
+              <div className="text-right"><p className="font-bold text-sm">{formatRupiah(t.total_koin_nilai)}</p><Badge variant="success" className="text-xs">Seimbang</Badge></div>
               <ChevronRight size={16} className="text-muted-foreground"/>
             </CardContent>
           </Card>

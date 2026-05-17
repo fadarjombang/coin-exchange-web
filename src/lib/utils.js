@@ -118,10 +118,10 @@ export const SESSION_STATUS = {
 }
 
 export const ASSIGNMENT_STATUS = {
-  pending: { label: 'Menunggu', icon: '⏳', variant: 'secondary' },
-  on_progress: { label: 'Sedang Dikunjungi', icon: '🔄', variant: 'info' },
-  selesai: { label: 'Selesai', icon: '✅', variant: 'success' },
-  skip: { label: 'Dilewati', icon: '⛔', variant: 'destructive' },
+  pending:     { label: 'Menunggu',           variant: 'secondary' },
+  on_progress: { label: 'Sedang Dikunjungi',  variant: 'info' },
+  selesai:     { label: 'Selesai',            variant: 'success' },
+  skip:        { label: 'Dilewati',           variant: 'destructive' },
 }
 
 export const ROLE_LABELS = {
