@@ -1,0 +1,153 @@
+import { clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+/**
+ * shadcn utility: merge Tailwind classes without conflicts.
+ */
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
+}
+
+// ── Currency & Number Formatting ─────────────────────────────
+export function formatRupiah(value) {
+  if (value === null || value === undefined) return 'Rp 0'
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+export function formatNumber(value) {
+  if (value === null || value === undefined) return '0'
+  return new Intl.NumberFormat('id-ID').format(value)
+}
+
+// ── Coin Denominations ───────────────────────────────────────
+export const DENOM_LIST = [
+  { key: 'koin_100', label: 'Rp 100', value: 100 },
+  { key: 'koin_200', label: 'Rp 200', value: 200 },
+  { key: 'koin_500', label: 'Rp 500', value: 500 },
+  { key: 'koin_1000', label: 'Rp 1.000', value: 1000 },
+  { key: 'koin_2000', label: 'Rp 2.000', value: 2000 },
+  { key: 'koin_5000', label: 'Rp 5.000', value: 5000 },
+  { key: 'koin_10000', label: 'Rp 10.000', value: 10000 },
+  { key: 'koin_20000', label: 'Rp 20.000', value: 20000 },
+]
+
+// Uang besar (untuk stok gudang & rekonsiliasi)
+export const UANG_LIST = [
+  { key: 'uang_50000', label: 'Rp 50.000', value: 50000 },
+  { key: 'uang_100000', label: 'Rp 100.000', value: 100000 },
+]
+
+// Semua denom (koin + uang) — dipakai di stok gudang
+export const ALL_DENOM_LIST = [...DENOM_LIST, ...UANG_LIST]
+
+export const DENOM_KEYS = DENOM_LIST.map((d) => d.key)
+
+/**
+ * Hitung total nilai dari objek denom.
+ * mode='qty'  → nilai * qty  (lama, untuk koin kasir)
+ * mode='nilai' → sum langsung nilai per field (baru, untuk stok gudang)
+ */
+export function calculateDenomTotal(denomObj, prefix = 'koin', mode = 'qty') {
+  return DENOM_LIST.reduce((total, denom) => {
+    const key = prefix === 'koin'
+      ? denom.key
+      : `${prefix}_${denom.key.replace('koin_', '')}`
+    const v = parseInt(denomObj?.[key] || 0, 10)
+    return total + (mode === 'qty' ? v * denom.value : v)
+  }, 0)
+}
+
+/**
+ * Hitung total nilai dari ALL_DENOM_LIST (koin + uang besar).
+ * Input sudah berupa nilai rupiah per denom.
+ */
+export function calculateStokTotal(stokObj) {
+  return ALL_DENOM_LIST.reduce((total, denom) => {
+    return total + (parseInt(stokObj?.[denom.key] || 0, 10))
+  }, 0)
+}
+
+export function emptyDenoms(prefix = 'koin') {
+  return DENOM_LIST.reduce((acc, d) => {
+    const key = prefix === 'koin' ? d.key : `${prefix}_${d.key.replace('koin_', '')}`
+    acc[key] = 0
+    return acc
+  }, {})
+}
+
+export function emptyAllDenoms() {
+  return ALL_DENOM_LIST.reduce((acc, d) => { acc[d.key] = 0; return acc }, {})
+}
+
+// ── Date & Time Formatting ───────────────────────────────────
+export function formatDate(value, options = {}) {
+  if (!value) return '-'
+  const defaultOptions = { day: '2-digit', month: 'long', year: 'numeric', ...options }
+  return new Intl.DateTimeFormat('id-ID', defaultOptions).format(new Date(value))
+}
+
+export function formatDateTime(value) {
+  if (!value) return '-'
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  }).format(new Date(value))
+}
+
+export function formatTime(value) {
+  if (!value) return '-'
+  return new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+}
+
+export function todayISO() {
+  return new Date().toISOString().split('T')[0]
+}
+
+// ── Status Maps ──────────────────────────────────────────────
+export const SESSION_STATUS = {
+  draft: { label: 'Draft', variant: 'secondary' },
+  pending_approval: { label: 'Menunggu Approval', variant: 'warning' },
+  active: { label: 'Aktif', variant: 'success' },
+  pending_close: { label: 'Menunggu Penutupan', variant: 'info' },
+  closed: { label: 'Selesai', variant: 'outline' },
+}
+
+export const ASSIGNMENT_STATUS = {
+  pending: { label: 'Menunggu', icon: '⏳', variant: 'secondary' },
+  on_progress: { label: 'Sedang Dikunjungi', icon: '🔄', variant: 'info' },
+  selesai: { label: 'Selesai', icon: '✅', variant: 'success' },
+  skip: { label: 'Dilewati', icon: '⛔', variant: 'destructive' },
+}
+
+export const ROLE_LABELS = {
+  superadmin: 'Super Admin',
+  admin: 'Admin',
+  manager: 'Manager',
+  kasir: 'Kasir',
+  driver: 'Driver',
+}
+
+// ── Misc Helpers ─────────────────────────────────────────────
+export function generateTrxNo(date, sequence) {
+  const d = new Date(date)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `TRX-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${String(sequence).padStart(3, '0')}`
+}
+
+export function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
+export function allTokoVisited(assignments) {
+  return assignments.every((a) => a.status === 'selesai' || a.status === 'skip')
+}
+
+export function truncate(text, maxLength = 40) {
+  if (!text) return ''
+  return text.length > maxLength ? text.slice(0, maxLength) + '…' : text
+}

@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── shadcn/ui CSS Variables (slate base, finance theme) ────── */
+@layer base {
+  :root {
+    --background:   0 0% 100%;
+    --foreground:   222.2 84% 4.9%;
+
+    --card:         0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover:      0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Primary = dark blue finance color */
+    --primary:      213 62% 24%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary = teal */
+    --secondary:    173 82% 32%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted:        210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accent = amber */
+    --accent:       38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive:  0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border:       214.3 31.8% 91.4%;
+    --input:        214.3 31.8% 91.4%;
+    --ring:         213 62% 24%;
+
+    --radius:       0.625rem;
+  }
+
+  .dark {
+    --background:   222.2 84% 4.9%;
+    --foreground:   210 40% 98%;
+    --card:         222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover:      222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary:      210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary:    217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted:        217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent:       217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive:  0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border:       217.2 32.6% 17.5%;
+    --input:        217.2 32.6% 17.5%;
+    --ring:         212.7 26.8% 83.9%;
+  }
+}
+
+/* ── Base Reset ───────────────────────────────────────────── */
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { @apply bg-slate-100; }
+  ::-webkit-scrollbar-thumb  { @apply bg-slate-300 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-slate-400; }
+}
+
+/* ── App-specific Utilities ───────────────────────────────── */
+@layer utilities {
+  .animate-fade-in  { animation: fade-in  0.2s ease-in-out; }
+  .animate-slide-up { animation: slide-up 0.3s ease-out; }
+
+  /* Safe area helpers for mobile */
+  .pb-safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .pt-safe-top    { padding-top:    env(safe-area-inset-top, 0px); }
+}
+
+/* ── App Layout Helpers ──────────────────────────────────── */
+@layer components {
+  /* Page header */
+  .page-title    { @apply text-2xl font-bold text-foreground; }
+  .page-subtitle { @apply text-sm text-muted-foreground mt-1; }
+
+  /* Stats card */
+  .stat-label { @apply text-xs font-medium text-muted-foreground uppercase tracking-wide; }
+  .stat-value { @apply text-2xl font-bold text-foreground mt-1; }
+
+  /* Sidebar nav item (used inside DashboardLayout) */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+           transition-all duration-150 cursor-pointer;
+  }
+
+  /* Progress bar */
+  .progress-bar  { @apply w-full bg-slate-200 rounded-full h-2 overflow-hidden; }
+  .progress-fill { @apply h-full bg-teal rounded-full transition-all duration-500; }
+
+  /* Mobile bottom nav */
+  .bottom-nav-item {
+    @apply flex flex-col items-center gap-1 py-2 px-3 text-xs font-medium
+           transition-colors duration-150 cursor-pointer flex-1;
+  }
+
+  /* Skeleton */
+  .skeleton { @apply bg-slate-200 rounded animate-pulse; }
+}
+
+/* ── Signature Pad Canvas ────────────────────────────────── */
+.signature-canvas {
+  touch-action: none;
+  border: 2px dashed hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  cursor: crosshair;
+  background: hsl(var(--muted));
+}
+
+/* ── PDF template (hidden, for capture) ─────────────────── */
+#pdf-template-container {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: -1;
+}
