@@ -101,15 +101,25 @@ export default function SesiDetail() {
           return acc
         }, {})
 
+        // Tambah uang besar yang diterima kasir selama sesi ke stok gudang
+        const { data: trxList } = await supabaseAdmin
+          .from('transaksi').select('uang_50000, uang_100000').eq('sesi_tugas_id', id)
+        const totalUang50k  = (trxList || []).reduce((s, t) => s + (t.uang_50000  || 0), 0)
+        const totalUang100k = (trxList || []).reduce((s, t) => s + (t.uang_100000 || 0), 0)
+        updates.uang_50000  = (currentStok.uang_50000  || 0) + totalUang50k
+        updates.uang_100000 = (currentStok.uang_100000 || 0) + totalUang100k
+
         const { error: updateErr } = await supabaseAdmin.from('stok_gudang')
           .update({ ...updates, updated_by: profile.id, last_updated: new Date().toISOString() })
           .eq('id', currentStok.id)
         if (updateErr) throw new Error('Gagal update stok: ' + updateErr.message)
 
         // Catat ke log
-        const deltaTotal = DENOM_LIST.reduce((sum, d) => sum + (rek[`sisa_koin_${d.key.replace('koin_','')}` ] || 0), 0)
+        const deltaKoin  = DENOM_LIST.reduce((sum, d) => sum + (rek[`sisa_koin_${d.key.replace('koin_','')}` ] || 0), 0)
+        const deltaUang  = totalUang50k + totalUang100k
+        const deltaTotal = deltaKoin + deltaUang
         await supabaseAdmin.from('stok_gudang_log').insert({
-          tipe: 'masuk_sisa', keterangan: `Sisa koin kembali dari sesi ${id}`,
+          tipe: 'masuk_sisa', keterangan: `Sisa koin + uang besar kembali dari sesi ${id}`,
           sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
         })
 
@@ -117,7 +127,7 @@ export default function SesiDetail() {
           status: 'closed', closed_by: profile.id,
           closed_at: new Date().toISOString(), catatan_close: catatan
         }).eq('id', id)
-        toast({ title: '✅ Ditutup', description: `Sisa koin kembali ke gudang: ${formatRupiah(deltaTotal)}`, variant: 'success' })
+        toast({ title: '✅ Sesi Ditutup', description: `Koin: +${formatRupiah(deltaKoin)} | Uang besar: +${formatRupiah(deltaUang)}`, variant: 'success' })
 
       } else if (dialog === 'reject_close') {
         await supabase.from('sesi_tugas').update({ status: 'active' }).eq('id', id)
