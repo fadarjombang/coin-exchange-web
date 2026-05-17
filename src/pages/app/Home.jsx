@@ -21,9 +21,11 @@ export default function AppHome() {
   const loadSesi = useCallback(async () => {
     if (!profile?.id) return
     setLoading(true)
-    const { data } = await supabase.from('sesi_tugas')
+    const { data: rows } = await supabase.from('sesi_tugas')
       .select('*, mobil:mobil_id(nopol), driver:driver_id(name), modal_koin(*), toko_assignment(*, toko:toko_id(nama_toko,kode_toko))')
-      .eq('kasir_id', profile.id).in('status', ['pending_approval','active']).maybeSingle()
+      .eq('kasir_id', profile.id).in('status', ['pending_approval','active'])
+      .order('created_at', { ascending: false }).limit(1)
+    const data = rows?.[0] ?? null
     setSesi(data)
     if (data?.id) {
       const { data: trx } = await supabase.from('transaksi').select('total_koin_nilai').eq('sesi_tugas_id', data.id)

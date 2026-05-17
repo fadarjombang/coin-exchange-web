@@ -31,7 +31,8 @@ export default function AppTokoList() {
 
   const loadData = useCallback(async () => {
     if (!profile?.id) return
-    const { data: sesi } = await supabase.from('sesi_tugas').select('id').eq('kasir_id', profile.id).eq('status','active').maybeSingle()
+    const { data: rows } = await supabase.from('sesi_tugas').select('id').eq('kasir_id', profile.id).eq('status','active').order('created_at', { ascending: false }).limit(1)
+    const sesi = rows?.[0] ?? null
     if (!sesi) { setLoading(false); return }
     setSesiId(sesi.id)
     const { data: assignData } = await supabase.from('toko_assignment')

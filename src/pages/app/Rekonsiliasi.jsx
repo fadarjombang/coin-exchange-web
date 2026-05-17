@@ -37,12 +37,13 @@ export default function Rekonsiliasi() {
 
   const load = useCallback(async () => {
     if (!profile?.id) return
-    const { data: s } = await supabase
+    const { data: rows } = await supabase
       .from('sesi_tugas')
       .select('*, modal_koin(*)')
       .eq('kasir_id', profile.id)
       .eq('status', 'active')
-      .maybeSingle()
+      .order('created_at', { ascending: false }).limit(1)
+    const s = rows?.[0] ?? null
     if (!s) { setLoading(false); return }
     setSesi(s)
     const { data: tx } = await supabase.from('transaksi').select('*').eq('sesi_tugas_id', s.id)

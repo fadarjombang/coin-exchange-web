@@ -60,10 +60,20 @@ export default function BuatSesi() {
   // Modal koin disimpan sebagai nilai rupiah per denom, total = jumlah semua nilai
   const modalTotal = Object.values(modal).reduce((sum, v) => sum + (parseInt(v) || 0), 0)
 
-  const validateStep = () => {
+  const validateStep = async () => {
     if (step === 0) {
       if (!tim.tanggal || !tim.mobil_id || !tim.kasir_id || !tim.driver_id || !tim.nama_polisi) {
         toast({ title: 'Lengkapi semua field', variant: 'destructive' }); return false
+      }
+      // Cek apakah kasir sudah punya sesi aktif/pending
+      const { data: existingSesi } = await supabase.from('sesi_tugas')
+        .select('id, status').eq('kasir_id', tim.kasir_id)
+        .in('status', ['pending_approval', 'active', 'pending_close'])
+        .limit(1)
+      if (existingSesi?.length > 0) {
+        const status = existingSesi[0].status
+        toast({ title: 'Kasir sudah punya sesi aktif', description: `Sesi dengan status "${status}" masih berjalan. Selesaikan dulu sebelum membuat sesi baru.`, variant: 'destructive' })
+        return false
       }
     }
     if (step === 1 && selectedToko.length === 0) {
@@ -80,7 +90,7 @@ export default function BuatSesi() {
     return true
   }
 
-  const next = () => { if (validateStep()) setStep((s) => s + 1) }
+  const next = async () => { if (await validateStep()) setStep((s) => s + 1) }
   const prev = () => setStep((s) => s - 1)
 
   const toggleToko = (id) => {
