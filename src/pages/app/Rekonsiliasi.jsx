@@ -12,8 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
-import { Camera, RotateCcw, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
-import { formatRupiah, DENOM_LIST, calculateDenomTotal, emptyDenoms } from '@/lib/utils'
+import { Camera, RotateCcw, X, Loader2, CheckCircle2, AlertCircle, ImagePlus } from 'lucide-react'
+import { formatRupiah, DENOM_LIST } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
 export default function Rekonsiliasi() {
@@ -26,24 +26,30 @@ export default function Rekonsiliasi() {
   const [trxList, setTrxList]   = useState([])
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
-  const [sisaKoin, setSisaKoin] = useState(emptyDenoms())
-  const [uangSetoran, setUangSetoran] = useState(0)
+  const [uangSetoran, setUangSetoran] = useState('')
   const [catatan, setCatatan]   = useState('')
   const [photo, setPhoto]       = useState(null)
 
-  const ttdRef    = useRef(null); const ttdCanvas = useRef(null)
-  const fileRef   = useRef(null)
+  const ttdRef    = useRef(null)
+  const ttdCanvas = useRef(null)
+  const cameraRef = useRef(null)
+  const galleryRef = useRef(null)
 
   const load = useCallback(async () => {
     if (!profile?.id) return
-    const { data: s } = await supabase.from('sesi_tugas').select('*, modal_koin(*)')
-      .eq('kasir_id', profile.id).eq('status','active').maybeSingle()
+    const { data: s } = await supabase
+      .from('sesi_tugas')
+      .select('*, modal_koin(*)')
+      .eq('kasir_id', profile.id)
+      .eq('status', 'active')
+      .maybeSingle()
     if (!s) { setLoading(false); return }
     setSesi(s)
     const { data: tx } = await supabase.from('transaksi').select('*').eq('sesi_tugas_id', s.id)
     setTrxList(tx || [])
     setLoading(false)
   }, [profile?.id])
+
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
@@ -52,118 +58,231 @@ export default function Rekonsiliasi() {
     ttdRef.current = pad
     const resize = () => {
       const c = ttdCanvas.current; if (!c) return
-      const r = Math.max(window.devicePixelRatio||1,1); c.width=c.offsetWidth*r; c.height=c.offsetHeight*r; c.getContext('2d').scale(r,r); pad.clear()
-    }; resize()
+      const r = Math.max(window.devicePixelRatio || 1, 1)
+      c.width = c.offsetWidth * r; c.height = c.offsetHeight * r
+      c.getContext('2d').scale(r, r); pad.clear()
+    }
+    resize()
     return () => pad.off()
   }, [loading])
 
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0]; if (!file) return
     setPhoto(await compress(file))
+    e.target.value = ''
   }
 
-  // sisaKoin disimpan sebagai nilai rupiah per denom, total = sum langsung
-  const sisaTotal      = Object.values(sisaKoin).reduce((s, v) => s + (parseInt(v) || 0), 0)
-  const totalKoinKeluar = trxList.reduce((s,t)=>s+(t.total_koin_nilai||0),0)
-  const totalUangMasuk  = trxList.reduce((s,t)=>s+(t.total_uang_diterima||0),0)
-  const expectedSisa    = (sesi?.modal_koin?.total_nilai||0) - totalKoinKeluar
-  const selisihKoin     = expectedSisa - sisaTotal
-  const selisihUang     = totalKoinKeluar - totalUangMasuk
+  // ======================== AUTO-HITUNG DARI SISTEM ========================
+  const modalKoin   = sesi?.modal_koin || {}
+  const modalTotal  = modalKoin.total_nilai || 0
 
-  const canSubmit = sisaTotal >= 0 && photo && !ttdRef.current?.isEmpty()
+  // Sisa koin per denom = modal - yang sudah keluar di semua transaksi
+  const sisaDenom = DENOM_LIST.reduce((acc, d) => {
+    const modalVal  = modalKoin[d.key] || 0
+    const keluarVal = trxList.reduce((s, t) => s + (t[d.key] || 0), 0)
+    acc[d.key] = Math.max(0, modalVal - keluarVal)
+    return acc
+  }, {})
+
+  const totalKoinKeluar = trxList.reduce((s, t) => s + (t.total_koin_nilai || 0), 0)
+  const totalUangMasuk  = trxList.reduce((s, t) => s + (t.total_uang_diterima || 0), 0)
+  const sisaKoinTotal   = Object.values(sisaDenom).reduce((s, v) => s + v, 0)
+  const uangSetoranNum  = parseInt(String(uangSetoran).replace(/\D/g, '')) || 0
+  const selisihUang     = totalUangMasuk - uangSetoranNum  // uang masuk - setoran ke gudang
+
+  const denomAktifSisa  = DENOM_LIST.filter(d => sisaDenom[d.key] > 0)
+  // ========================================================================
+
+  const canSubmit = photo && !ttdRef.current?.isEmpty()
+
+  const handleUangChange = (e) => {
+    const raw = e.target.value.replace(/\D/g, '')
+    setUangSetoran(raw ? parseInt(raw).toLocaleString('id-ID') : '')
+  }
 
   const handleSubmit = async () => {
+    if (!canSubmit) return
     setSaving(true)
     try {
       const ttd = ttdRef.current?.toDataURL('image/png')
       await supabase.from('rekonsiliasi').insert({
-        sesi_tugas_id: sesi.id, kasir_id: profile.id,
-        ...Object.fromEntries(DENOM_LIST.map(d=>[`sisa_koin_${d.key.replace('koin_','')}`,sisaKoin[d.key]||0])),
-        sisa_koin_nilai: sisaTotal, expected_sisa_koin: expectedSisa,
-        total_uang_masuk: totalUangMasuk, uang_setoran: uangSetoran,
-        selisih_koin: selisihKoin, selisih_uang: selisihUang,
-        foto_sisa: photo, ttd_kasir: ttd, catatan,
+        sesi_tugas_id: sesi.id,
+        kasir_id: profile.id,
+        // Simpan sisa koin per denom (dari kalkulasi sistem)
+        ...Object.fromEntries(DENOM_LIST.map(d => [`sisa_koin_${d.key.replace('koin_', '')}`, sisaDenom[d.key] || 0])),
+        sisa_koin_nilai: sisaKoinTotal,
+        expected_sisa_koin: sisaKoinTotal, // sama karena auto-hitung
+        total_uang_masuk: totalUangMasuk,
+        uang_setoran: uangSetoranNum,
+        selisih_koin: 0,
+        selisih_uang: selisihUang,
+        foto_sisa: photo,
+        ttd_kasir: ttd,
+        catatan,
       })
       await supabase.from('sesi_tugas').update({ status: 'pending_close' }).eq('id', sesi.id)
       toast({ title: 'Rekonsiliasi terkirim', description: 'Menunggu persetujuan Manager', variant: 'success' })
       navigate('/app')
-    } catch (err) { toast({ title: 'Gagal', description: err.message, variant: 'destructive' }) }
-    finally { setSaving(false) }
+    } catch (err) {
+      toast({ title: 'Gagal', description: err.message, variant: 'destructive' })
+    } finally {
+      setSaving(false)
+    }
   }
 
-  if (loading) return <MobileLayout title="Rekonsiliasi"><div className="p-4 space-y-3">{Array.from({length:4}).map((_,i)=><div key={i} className="h-16 bg-muted rounded-xl animate-pulse"/>)}</div></MobileLayout>
+  if (loading) return (
+    <MobileLayout title="Rekonsiliasi">
+      <div className="p-4 space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-16 bg-muted rounded-xl animate-pulse" />
+        ))}
+      </div>
+    </MobileLayout>
+  )
 
-  if (!sesi) return <MobileLayout title="Rekonsiliasi"><div className="p-8 text-center text-muted-foreground">Tidak ada sesi aktif</div></MobileLayout>
+  if (!sesi) return (
+    <MobileLayout title="Rekonsiliasi">
+      <div className="p-8 text-center text-muted-foreground">Tidak ada sesi aktif</div>
+    </MobileLayout>
+  )
 
   return (
     <MobileLayout title="Rekonsiliasi Akhir" showBack>
       <div className="p-4 space-y-4">
-        {/* Summary */}
+
+        {/* Ringkasan Sesi */}
         <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4 space-y-2">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-xs text-muted-foreground">Modal Awal</p><p className="font-bold">{formatRupiah(sesi.modal_koin?.total_nilai)}</p></div>
-              <div><p className="text-xs text-muted-foreground">Koin Keluar</p><p className="font-bold">{formatRupiah(totalKoinKeluar)}</p></div>
-              <div><p className="text-xs text-muted-foreground">Uang Masuk</p><p className="font-bold">{formatRupiah(totalUangMasuk)}</p></div>
-              <div><p className="text-xs text-muted-foreground">Expected Sisa</p><p className="font-bold">{formatRupiah(expectedSisa)}</p></div>
+          <CardContent className="p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-primary mb-3">Ringkasan Sesi</p>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Modal Awal</span>
+                <span className="font-semibold">{formatRupiah(modalTotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Koin Keluar</span>
+                <span className="font-semibold text-rose-600">{formatRupiah(totalKoinKeluar)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Jumlah Toko</span>
+                <span className="font-semibold">{trxList.length} toko</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Uang Diterima dari Toko</span>
+                <span className="font-semibold text-emerald-600">{formatRupiah(totalUangMasuk)}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Sisa Koin Input */}
+        {/* Sisa Koin (Auto-hitung) */}
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm flex justify-between"><span>Sisa Koin Aktual</span><span className="text-primary">{formatRupiah(sisaTotal)}</span></CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex justify-between items-center">
+              <span>Sisa Koin Dibawa Pulang</span>
+              <Badge variant="info">{formatRupiah(sisaKoinTotal)}</Badge>
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">Dihitung otomatis oleh sistem</p>
+          </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-2">
-              {DENOM_LIST.map((d) => (
-                <div key={d.key} className="space-y-1">
-                  <Label className="text-xs font-medium">{d.label}</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
-                    <Input
-                      type="number" min="0"
-                      value={sisaKoin[d.key] || ''}
-                      placeholder="0"
-                      onChange={(e) => setSisaKoin((k) => ({ ...k, [d.key]: parseInt(e.target.value) || 0 }))}
-                      className="h-9 pl-7"
-                    />
+            {denomAktifSisa.length > 0 ? (
+              <div className="space-y-1.5">
+                {denomAktifSisa.map(d => (
+                  <div key={d.key} className="flex justify-between text-sm py-1 border-b border-dashed border-border/50 last:border-0">
+                    <span className="text-muted-foreground">{d.label}</span>
+                    <span className="font-semibold">{formatRupiah(sisaDenom[d.key])}</span>
                   </div>
+                ))}
+                <div className="flex justify-between text-sm font-bold pt-1">
+                  <span>Total Sisa</span>
+                  <span className="text-primary">{formatRupiah(sisaKoinTotal)}</span>
                 </div>
-              ))}
-            </div>
-            <div className={`mt-3 flex items-center justify-between p-3 rounded-lg ${selisihKoin===0?'bg-emerald-50 border border-emerald-200':'bg-rose-50 border border-rose-200'}`}>
-              <span className="text-sm font-medium">Selisih Koin</span>
-              <Badge variant={selisihKoin===0?'success':'destructive'}>{selisihKoin===0?'✓ 0':formatRupiah(selisihKoin)}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Uang setoran */}
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Uang Setoran ke Gudang (Rp)</CardTitle></CardHeader>
-          <CardContent>
-            <Input type="number" min="0" value={uangSetoran} onChange={(e)=>setUangSetoran(parseInt(e.target.value)||0)} placeholder="Jumlah uang setoran" />
-            <div className={`mt-2 flex items-center justify-between p-3 rounded-lg ${selisihUang===0?'bg-emerald-50 border border-emerald-200':'bg-amber-50 border border-amber-200'}`}>
-              <span className="text-sm font-medium">Selisih Uang</span>
-              <Badge variant={selisihUang===0?'success':'warning'}>{selisihUang===0?'✓ 0':formatRupiah(selisihUang)}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Foto */}
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Foto Sisa Koin *</CardTitle></CardHeader>
-          <CardContent>
-            {photo ? (
-              <div className="relative"><img src={photo} alt="Foto" className="w-full rounded-lg max-h-48 object-cover"/>
-                <button onClick={()=>setPhoto(null)} className="absolute top-2 right-2 w-7 h-7 bg-black/50 rounded-full flex items-center justify-center text-white"><X size={14}/></button>
               </div>
             ) : (
-              <button onClick={()=>fileRef.current?.click()} className="w-full h-28 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                <Camera size={24}/><span className="text-sm">Foto Sisa Koin</span>
-              </button>
+              <p className="text-sm text-muted-foreground text-center py-2">
+                ✅ Semua koin telah diserahkan ke toko
+              </p>
             )}
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto}/>
+          </CardContent>
+        </Card>
+
+        {/* Uang Setoran ke Gudang */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Uang Setoran ke Gudang</CardTitle>
+            <p className="text-xs text-muted-foreground">Total uang yang kamu setor kembali ke gudang</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-sm">Jumlah Setoran (Rp)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">Rp</span>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  className="pl-9 h-11 text-base"
+                  value={uangSetoran}
+                  onChange={handleUangChange}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div className={`flex items-center justify-between p-3 rounded-lg ${
+              selisihUang === 0
+                ? 'bg-emerald-50 border border-emerald-200'
+                : 'bg-amber-50 border border-amber-200'
+            }`}>
+              <div>
+                <p className="text-xs text-muted-foreground">Selisih Uang</p>
+                <p className="text-xs">(Uang Masuk − Setoran)</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {selisihUang === 0
+                  ? <><CheckCircle2 size={16} className="text-emerald-600" /><Badge variant="success">✓ LUNAS</Badge></>
+                  : <><AlertCircle size={16} className="text-amber-600" /><Badge variant="warning">{formatRupiah(Math.abs(selisihUang))}</Badge></>
+                }
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Foto Sisa Koin */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Foto Sisa Koin *</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {photo ? (
+              <div className="relative">
+                <img src={photo} alt="Foto sisa koin" className="w-full rounded-lg max-h-48 object-cover" />
+                <button
+                  onClick={() => setPhoto(null)}
+                  className="absolute top-2 right-2 w-7 h-7 bg-black/50 rounded-full flex items-center justify-center text-white"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => cameraRef.current?.click()}
+                  className="h-24 border-2 border-dashed border-primary/40 rounded-lg flex flex-col items-center justify-center gap-1.5 text-primary bg-primary/5 hover:bg-primary/10 transition-colors"
+                >
+                  <Camera size={22} />
+                  <span className="text-xs font-medium">Ambil Foto</span>
+                </button>
+                <button
+                  onClick={() => galleryRef.current?.click()}
+                  className="h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  <ImagePlus size={22} />
+                  <span className="text-xs font-medium">Dari Galeri</span>
+                </button>
+              </div>
+            )}
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
+            <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
           </CardContent>
         </Card>
 
@@ -171,23 +290,42 @@ export default function Rekonsiliasi() {
         <Card>
           <CardContent className="p-4 space-y-2">
             <Label>Catatan (opsional)</Label>
-            <Textarea value={catatan} onChange={(e)=>setCatatan(e.target.value)} placeholder="Catatan rekonsiliasi..." rows={3}/>
+            <Textarea
+              value={catatan}
+              onChange={(e) => setCatatan(e.target.value)}
+              placeholder="Catatan rekonsiliasi, kendala, atau keterangan lain..."
+              rows={3}
+            />
           </CardContent>
         </Card>
 
-        {/* TTD */}
+        {/* Tanda Tangan */}
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Tanda Tangan Kasir *</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Tanda Tangan Kasir *</CardTitle>
+          </CardHeader>
           <CardContent>
-            <canvas ref={ttdCanvas} className="signature-canvas w-full h-28 block"/>
-            <Button type="button" variant="ghost" size="sm" className="mt-1" onClick={()=>ttdRef.current?.clear()}><RotateCcw size={14}/> Hapus</Button>
+            <canvas ref={ttdCanvas} className="signature-canvas w-full h-28 block rounded-lg" />
+            <Button type="button" variant="ghost" size="sm" className="mt-1" onClick={() => ttdRef.current?.clear()}>
+              <RotateCcw size={14} /> Hapus
+            </Button>
           </CardContent>
         </Card>
 
-        <Button className="w-full h-12 text-base" onClick={handleSubmit} disabled={!canSubmit||saving} id="submit-rekonsiliasi">
-          {saving&&<Loader2 size={16} className="animate-spin mr-2"/>}{saving?'Mengirim...':'Kirim Rekonsiliasi'}
+        <Button
+          className="w-full h-12 text-base"
+          onClick={handleSubmit}
+          disabled={!canSubmit || saving}
+          id="submit-rekonsiliasi"
+        >
+          {saving && <Loader2 size={16} className="animate-spin mr-2" />}
+          {saving ? 'Mengirim...' : 'Kirim Rekonsiliasi'}
         </Button>
-        {!canSubmit && <p className="text-xs text-muted-foreground text-center pb-4">Lengkapi foto dan tanda tangan</p>}
+        {!canSubmit && (
+          <p className="text-xs text-muted-foreground text-center pb-4">
+            Lengkapi foto dan tanda tangan
+          </p>
+        )}
       </div>
     </MobileLayout>
   )
