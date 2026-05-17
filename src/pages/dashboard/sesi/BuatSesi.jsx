@@ -247,14 +247,11 @@ export default function BuatSesi() {
                       <div className="relative">
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
                         <Input
-                          type="number"
-                          min="0"
-                          max={stok?.[d.key] || undefined}
-                          step={d.value}
-                          value={modal[d.key] || ''}
+                          type="text" inputMode="numeric"
+                          value={modal[d.key] ? modal[d.key].toLocaleString('id-ID') : ''}
                           placeholder="0"
                           onChange={(e) => {
-                            const val = parseInt(e.target.value) || 0
+                            const val = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0
                             setModal((m) => ({ ...m, [d.key]: val }))
                           }}
                           className={`h-9 pl-7 ${(modal[d.key] || 0) > (stok?.[d.key] || 0) ? 'border-destructive' : ''}`}
