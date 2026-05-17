@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
@@ -82,6 +83,8 @@ export default function StokGudang() {
     finally { setSaving(false) }
   }
 
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin'
   const TYPE_BADGE = { keluar_modal: 'destructive', masuk_sisa: 'success', penyesuaian: 'info' }
   const TYPE_LABEL = { keluar_modal: 'Keluar Modal', masuk_sisa: 'Masuk Sisa', penyesuaian: 'Penyesuaian' }
 
@@ -97,7 +100,7 @@ export default function StokGudang() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={fetchData}><RefreshCw size={14} /></Button>
-            {!editMode && <Button size="sm" onClick={() => setEditMode(true)}>Penyesuaian Manual</Button>}
+            {!editMode && isAdmin && <Button size="sm" onClick={() => setEditMode(true)}>Penyesuaian Manual</Button>}
           </div>
         </div>
 

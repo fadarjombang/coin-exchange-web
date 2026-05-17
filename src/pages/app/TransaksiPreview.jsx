@@ -5,7 +5,7 @@ import MobileLayout from '@/components/layout/MobileLayout'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Download, MessageCircle, Loader2 } from 'lucide-react'
+import { Download, Loader2 } from 'lucide-react'
 import { formatRupiah, formatDateTime, DENOM_LIST } from '@/lib/utils'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -58,21 +58,6 @@ export default function TransaksiPreview() {
     }
   }
 
-  const shareWA = () => {
-    if (!data) return
-    const t    = data.transaksi
-    const toko = data.assignment?.toko
-    const text = encodeURIComponent(
-      `*BERITA ACARA SERAH TERIMA KOIN*\n` +
-      `Tanggal: ${formatDateTime(t.created_at)}\n\n` +
-      `Toko: ${toko.nama_toko} (${toko.kode_toko})\n` +
-      `PIC: ${t.pic_nama}\n\n` +
-      `Total Koin : ${formatRupiah(t.total_koin_nilai)}\n` +
-      `Total Uang : ${formatRupiah(t.total_uang_diterima)}\n` +
-      `Selisih    : Rp 0 ✅`
-    )
-    window.open(`https://wa.me/?text=${text}`, '_blank')
-  }
 
   if (loading) return (
     <MobileLayout title="Berita Acara">
@@ -243,18 +228,15 @@ export default function TransaksiPreview() {
         </div>
         {/* =================== END PRINT AREA =================== */}
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button onClick={generatePDF} disabled={pdfLoading} variant="outline" className="h-12">
+        <div className="space-y-3">
+          <Button onClick={generatePDF} disabled={pdfLoading} className="w-full h-12">
             {pdfLoading ? <Loader2 size={16} className="animate-spin mr-1" /> : <Download size={16} />}
-            Download PDF
+            Download Berita Acara PDF
           </Button>
-          <Button onClick={shareWA} className="h-12 bg-green-600 hover:bg-green-700">
-            <MessageCircle size={16} /> Share WA
+          <Button variant="outline" className="w-full" onClick={() => navigate('/app/toko')}>
+            ← Kembali ke Daftar Toko
           </Button>
         </div>
-        <Button variant="outline" className="w-full" onClick={() => navigate('/app/toko')}>
-          ← Kembali ke Daftar Toko
-        </Button>
       </div>
     </MobileLayout>
   )
