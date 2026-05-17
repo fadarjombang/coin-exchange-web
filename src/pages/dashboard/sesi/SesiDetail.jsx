@@ -12,7 +12,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle, Loader2, AlertTriangle, Pencil } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { formatRupiah, formatDateTime, formatDate, SESSION_STATUS, ASSIGNMENT_STATUS, DENOM_LIST } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
@@ -24,9 +25,13 @@ export default function SesiDetail() {
   const { toast }    = useToast()
   const [sesi, setSesi]       = useState(null)
   const [loading, setLoading] = useState(true)
-  const [dialog, setDialog]   = useState(null) // 'approve'|'reject'|'approve_close'|'reject_close'
+  const [dialog, setDialog]   = useState(null)
   const [catatan, setCatatan] = useState('')
   const [saving, setSaving]   = useState(false)
+  // State untuk koreksi modal koin inline
+  const [editModal, setEditModal] = useState(false)
+  const [modalForm, setModalForm] = useState({})
+  const [savingModal, setSavingModal] = useState(false)
 
   const fetchSesi = useCallback(async () => {
     const { data } = await supabase.from('sesi_tugas')
@@ -170,10 +175,56 @@ export default function SesiDetail() {
   const rek    = sesi?.rekonsiliasi
   const status = (rawStatus === 'active' && rek) ? 'pending_close' : rawStatus
   
-  const isAdminOrManager = roles.includes('admin') || roles.includes('manager')
-  const canApprove = isAdminOrManager && status === 'pending_approval'
-  const canClose   = isAdminOrManager && status === 'pending_close'
-  const canEdit    = roles.includes('admin') && status === 'draft'
+  const isAdminOrManager  = roles.includes('admin') || roles.includes('manager')
+  const canApprove    = isAdminOrManager && status === 'pending_approval'
+  const canClose      = isAdminOrManager && status === 'pending_close'
+  const canEdit       = roles.includes('admin') && status === 'draft'
+  const canEditModal  = roles.includes('admin') && status === 'pending_approval' // Admin bisa koreksi modal saat pending
+
+  const startEditModal = () => {
+    const m = sesi?.modal_koin || {}
+    setModalForm(DENOM_LIST.reduce((acc, d) => { acc[d.key] = m[d.key] || 0; return acc }, {}))
+    setEditModal(true)
+  }
+
+  const saveModal = async () => {
+    setSavingModal(true)
+    try {
+      // Cek stok efektif (stok - modal pending sesi LAIN, bukan sesi ini)
+      const { data: rawStok } = await supabaseAdmin.from('stok_gudang').select('*').single()
+      const { data: pendingSesiIds } = await supabaseAdmin.from('sesi_tugas').select('id').eq('status','pending_approval').neq('id', id)
+      const sesiIds = (pendingSesiIds || []).map(s => s.id)
+      let reserved = {}
+      if (sesiIds.length > 0) {
+        const { data: pendingModal } = await supabaseAdmin.from('modal_koin').select('*').in('sesi_tugas_id', sesiIds)
+        reserved = (pendingModal || []).reduce((acc, m) => {
+          DENOM_LIST.forEach(d => { acc[d.key] = (acc[d.key] || 0) + (m[d.key] || 0) })
+          return acc
+        }, {})
+      }
+
+      // Validasi
+      for (const d of DENOM_LIST) {
+        const available = Math.max(0, (rawStok[d.key] || 0) - (reserved[d.key] || 0))
+        if ((modalForm[d.key] || 0) > available) {
+          toast({ title: `${d.label}: melebihi stok tersedia`, description: `Tersedia: ${formatRupiah(available)} (setelah reservasi sesi lain)`, variant: 'destructive' })
+          return
+        }
+      }
+
+      // Update modal_koin
+      const { error } = await supabaseAdmin.from('modal_koin')
+        .update({ ...modalForm })
+        .eq('sesi_tugas_id', id)
+      if (error) throw error
+
+      toast({ title: '✅ Modal dikoreksi', description: 'Nilai modal koin berhasil diperbarui.' })
+      setEditModal(false)
+      fetchSesi()
+    } catch (err) {
+      toast({ title: 'Gagal', description: err.message, variant: 'destructive' })
+    } finally { setSavingModal(false) }
+  }
 
   return (
     <DashboardLayout>
@@ -192,6 +243,11 @@ export default function SesiDetail() {
           </div>
           <div className="flex gap-2">
             {canEdit && <Button variant="outline" onClick={() => navigate(`/dashboard/sesi/edit/${id}`)}>Edit Draft</Button>}
+            {canEditModal && !editModal && (
+              <Button variant="outline" onClick={startEditModal}>
+                <Pencil size={14} className="mr-1" /> Koreksi Modal
+              </Button>
+            )}
             {canApprove && (
               <>
                 <Button variant="destructive" onClick={() => setDialog('reject')}><XCircle size={16} /> Tolak</Button>
@@ -229,17 +285,53 @@ export default function SesiDetail() {
           <TabsList><TabsTrigger value="modal">Modal Koin</TabsTrigger><TabsTrigger value="toko">Toko ({sesi?.toko_assignment?.length})</TabsTrigger><TabsTrigger value="transaksi">Transaksi ({sesi?.transaksi?.length})</TabsTrigger>{rek && <TabsTrigger value="rekonsiliasi">Rekonsiliasi</TabsTrigger>}</TabsList>
 
           <TabsContent value="modal">
-            <Card><CardContent className="p-5"><div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {DENOM_LIST.map((d) => {
-                const nilai = sesi?.modal_koin?.[d.key] || 0
-                return (
-                  <div key={d.key} className="rounded-lg border p-3 bg-muted/30">
-                    <p className="text-xs text-muted-foreground mb-1">{d.label}</p>
-                    <p className="text-base font-bold text-primary">{formatRupiah(nilai)}</p>
+            <Card><CardContent className="p-5">
+              {editModal ? (
+                <div className="space-y-4">
+                  <p className="text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">
+                    ⚠️ Mode Koreksi Modal — ubah nilai yang salah, sistem akan validasi terhadap stok efektif.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {DENOM_LIST.map((d) => (
+                      <div key={d.key} className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">{d.label}</label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
+                          <Input
+                            type="text" inputMode="numeric"
+                            value={modalForm[d.key] ? modalForm[d.key].toLocaleString('id-ID') : ''}
+                            placeholder="0"
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value.replace(/\D/g,''), 10) || 0
+                              setModalForm(m => ({ ...m, [d.key]: val }))
+                            }}
+                            className="h-9 pl-7"
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )
-              })}
-            </div></CardContent></Card>
+                  <div className="flex gap-2 justify-end pt-2 border-t">
+                    <Button variant="ghost" onClick={() => setEditModal(false)} disabled={savingModal}>Batal</Button>
+                    <Button onClick={saveModal} disabled={savingModal}>
+                      {savingModal && <Loader2 size={14} className="animate-spin mr-1" />} Simpan Koreksi
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {DENOM_LIST.map((d) => {
+                    const nilai = sesi?.modal_koin?.[d.key] || 0
+                    return (
+                      <div key={d.key} className="rounded-lg border p-3 bg-muted/30">
+                        <p className="text-xs text-muted-foreground mb-1">{d.label}</p>
+                        <p className="text-base font-bold text-primary">{formatRupiah(nilai)}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent></Card>
           </TabsContent>
 
           <TabsContent value="toko">
