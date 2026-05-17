@@ -175,11 +175,13 @@ export default function SesiDetail() {
   const rek    = sesi?.rekonsiliasi
   const status = (rawStatus === 'active' && rek) ? 'pending_close' : rawStatus
   
-  const isAdminOrManager  = roles.includes('admin') || roles.includes('manager')
-  const canApprove    = isAdminOrManager && status === 'pending_approval'
-  const canClose      = isAdminOrManager && status === 'pending_close'
-  const canEdit       = roles.includes('admin') && status === 'draft'
-  const canEditModal  = roles.includes('admin') && status === 'pending_approval' // Admin bisa koreksi modal saat pending
+  const isAdmin           = roles.includes('admin') || roles.includes('superadmin')
+  const isManager         = roles.includes('manager')
+  const isAdminOrManager  = isAdmin || isManager
+  const canApprove    = isManager && status === 'pending_approval'   // hanya manager
+  const canClose      = isManager && status === 'pending_close'      // hanya manager
+  const canEdit       = isAdmin && status === 'draft'                // hanya admin
+  const canEditModal  = isAdmin && status === 'pending_approval'     // hanya admin
 
   const startEditModal = () => {
     const m = sesi?.modal_koin || {}
