@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatRupiah, formatTime, ASSIGNMENT_STATUS } from '@/lib/utils'
-import { Store, ChevronRight, SkipForward, Loader2 } from 'lucide-react'
+import { Store, ChevronRight, SkipForward, Loader2, Search } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 
 const BADGE_VARIANT = { pending:'pending', on_progress:'info', selesai:'success', skip:'destructive' }
@@ -26,6 +27,7 @@ export default function AppTokoList() {
   const [skipDialog, setSkipDialog] = useState(null)
   const [alasan, setAlasan]   = useState('')
   const [saving, setSaving]   = useState(false)
+  const [search, setSearch]   = useState('')
 
   const loadData = useCallback(async () => {
     if (!profile?.id) return
@@ -62,16 +64,34 @@ export default function AppTokoList() {
     setSaving(false); setSkipDialog(null); setAlasan(''); loadData()
   }
 
+  const filtered = assigns.filter((a) => {
+    if (!search) return true
+    const q = search.toLowerCase()
+    return a.toko?.nama_toko?.toLowerCase().includes(q) || a.toko?.kode_toko?.toLowerCase().includes(q)
+  })
+
   return (
     <MobileLayout title="Daftar Toko">
       <div className="p-4 space-y-3">
+        {/* Search bar */}
+        {assigns.length > 0 && (
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari nama atau kode toko..."
+              className="pl-9 h-10"
+            />
+          </div>
+        )}
         {loading ? Array.from({length:4}).map((_,i)=><Skeleton key={i} className="h-20 w-full rounded-xl"/>)
-        : assigns.length === 0 ? (
+        : filtered.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <Store size={40} className="mx-auto mb-3 opacity-30" />
-            <p>Tidak ada sesi aktif</p>
+            <p>{assigns.length === 0 ? 'Tidak ada sesi aktif' : 'Toko tidak ditemukan'}</p>
           </div>
-        ) : assigns.map((a) => {
+        ) : filtered.map((a) => {
           const trx = a.transaksi
           return (
             <Card key={a.id} className={a.status==='on_progress' ? 'border-blue-400 ring-1 ring-blue-400' : ''}>

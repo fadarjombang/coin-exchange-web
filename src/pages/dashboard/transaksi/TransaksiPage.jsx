@@ -136,7 +136,7 @@ export default function TransaksiPage() {
                 <Label className="text-xs">Cari</Label>
                 <div className="relative mt-1">
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Toko / kasir..." className="h-9 pl-8" />
+                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nama / kode toko / kasir..." className="h-9 pl-8" />
                 </div>
               </div>
               <Button size="sm" onClick={fetch}><Filter size={14} /> Terapkan</Button>

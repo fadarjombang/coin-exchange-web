@@ -123,7 +123,7 @@ export default function BuatSesi() {
   }
 
   const filteredToko = tokoAll.filter((t) =>
-    !tokoSearch || t.nama_toko.toLowerCase().includes(tokoSearch.toLowerCase()) || t.kode_toko.includes(tokoSearch)
+    !tokoSearch || t.nama_toko.toLowerCase().includes(tokoSearch.toLowerCase()) || t.kode_toko.toLowerCase().includes(tokoSearch.toLowerCase())
   )
 
   return (

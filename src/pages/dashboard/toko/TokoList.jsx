@@ -84,7 +84,7 @@ export default function TokoList() {
   }
 
   const filtered = toko.filter((t) =>
-    !search || t.nama_toko.toLowerCase().includes(search.toLowerCase()) || t.kode_toko.includes(search)
+    !search || t.nama_toko.toLowerCase().includes(search.toLowerCase()) || t.kode_toko.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
