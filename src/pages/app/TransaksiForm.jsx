@@ -11,9 +11,16 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Camera, ImagePlus, X, RotateCcw, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { formatRupiah, DENOM_LIST, calculateDenomTotal, emptyDenoms } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+
+const JABATAN_OPTIONS = [
+  'Chief of Store',
+  'Store Senior Leader',
+  'Store Junior Leader',
+]
 
 function SignatureCanvas({ label, padRef, canvasRef, onClear }) {
   useEffect(() => {
@@ -176,7 +183,19 @@ export default function TransaksiForm() {
           <CardHeader className="pb-2"><CardTitle className="text-sm">PIC Toko</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1.5"><Label>Nama PIC *</Label><Input value={picNama} onChange={(e) => setPicNama(e.target.value)} placeholder="Nama penanggung jawab" /></div>
-            <div className="space-y-1.5"><Label>Jabatan</Label><Input value={picJabatan} onChange={(e) => setPicJabatan(e.target.value)} placeholder="Jabatan (opsional)" /></div>
+            <div className="space-y-1.5">
+                <Label>Jabatan</Label>
+                <Select value={picJabatan} onValueChange={setPicJabatan}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih jabatan..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {JABATAN_OPTIONS.map(j => (
+                      <SelectItem key={j} value={j}>{j}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
           </CardContent>
         </Card>
 

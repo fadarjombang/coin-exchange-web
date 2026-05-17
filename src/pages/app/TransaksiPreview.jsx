@@ -43,18 +43,12 @@ export default function TransaksiPreview() {
         windowWidth: el.scrollWidth, windowHeight: el.scrollHeight,
       })
       const imgData = canvas.toDataURL('image/jpeg', 0.92)
-      const pdf     = new jsPDF('p', 'mm', 'a4')
-      const pageW   = pdf.internal.pageSize.getWidth()
-      const pageH   = pdf.internal.pageSize.getHeight()
-      const imgH    = (canvas.height * pageW) / canvas.width
-
-      // Jika konten lebih dari 1 halaman, potong per halaman
-      let yPos = 0
-      while (yPos < imgH) {
-        if (yPos > 0) pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, -yPos, pageW, imgH)
-        yPos += pageH
-      }
+      // Buat halaman PDF sesuai ukuran konten (1 halaman panjang)
+      const pxToMm = 0.264583
+      const pageW  = canvas.width  * pxToMm / 2   // dibagi 2 karena scale: 2
+      const pageH  = canvas.height * pxToMm / 2
+      const pdf    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pageW, pageH] })
+      pdf.addImage(imgData, 'JPEG', 0, 0, pageW, pageH)
       const filename = `BA-${data?.assignment?.toko?.kode_toko}-${new Date().toISOString().slice(0,10)}.pdf`
       pdf.save(filename)
     } catch (e) {
