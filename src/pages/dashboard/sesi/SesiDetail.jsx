@@ -65,13 +65,17 @@ export default function SesiDetail() {
           .eq('id', currentStok.id)
         if (updateErr) throw new Error('Gagal update stok: ' + updateErr.message)
 
-        // Catat ke log
+        // Catat ke log — keluar modal
         const deltaTotal = DENOM_LIST.reduce((sum, d) => sum - (modalKoin[d.key] || 0), 0)
-        await supabaseAdmin.from('stok_gudang_log').insert({
-          tipe: 'keluar_modal', keterangan: `Modal sesi keluar untuk ${id}`,
+        const denomDetail = DENOM_LIST.filter(d => modalKoin[d.key] > 0)
+          .map(d => `${d.label}: ${formatRupiah(modalKoin[d.key])}`).join(' | ')
+        const { error: logErr } = await supabaseAdmin.from('stok_gudang_log').insert({
+          tipe: 'keluar_modal',
+          keterangan: `Modal diambil oleh kasir — Sesi ${id.slice(0,8)} | ${denomDetail || 'tidak ada modal'}`,
           sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
           ...DENOM_LIST.reduce((acc, d) => { acc[`delta_${d.key.replace('koin_', '')}`] = -(modalKoin[d.key] || 0); return acc }, {})
         })
+        if (logErr) console.error('Log approve error:', logErr.message)
 
         await supabase.from('sesi_tugas').update({
           status: 'active', approved_by: profile.id,
@@ -114,14 +118,16 @@ export default function SesiDetail() {
           .eq('id', currentStok.id)
         if (updateErr) throw new Error('Gagal update stok: ' + updateErr.message)
 
-        // Catat ke log
+        // Catat ke log — masuk sisa koin + uang besar
         const deltaKoin  = DENOM_LIST.reduce((sum, d) => sum + (rek[`sisa_koin_${d.key.replace('koin_','')}` ] || 0), 0)
         const deltaUang  = totalUang50k + totalUang100k
         const deltaTotal = deltaKoin + deltaUang
-        await supabaseAdmin.from('stok_gudang_log').insert({
-          tipe: 'masuk_sisa', keterangan: `Sisa koin + uang besar kembali dari sesi ${id}`,
+        const { error: logErr2 } = await supabaseAdmin.from('stok_gudang_log').insert({
+          tipe: 'masuk_sisa',
+          keterangan: `Sesi ditutup — Sisa koin: ${formatRupiah(deltaKoin)} | Uang besar: ${formatRupiah(deltaUang)} | Sesi ${id.slice(0,8)}`,
           sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
         })
+        if (logErr2) console.error('Log close error:', logErr2.message)
 
         await supabase.from('sesi_tugas').update({
           status: 'closed', closed_by: profile.id,
