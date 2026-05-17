@@ -103,12 +103,17 @@ export default function AppHome() {
                   <span className="text-muted-foreground">{selesai}/{total} toko</span>
                 </div>
                 <Progress value={pct} className="h-3" />
-                <div className="flex gap-2 flex-wrap mt-1">
-                  {assigns.sort((a,b)=>a.urutan-b.urutan).map((a) => (
-                    <span key={a.id} className="text-base" title={`${a.toko?.nama_toko}: ${ASSIGNMENT_STATUS[a.status]?.label}`}>
-                      {ASSIGNMENT_STATUS[a.status]?.icon}
-                    </span>
-                  ))}
+                <div className="flex gap-1.5 flex-wrap mt-1">
+                  {assigns.sort((a,b)=>a.urutan-b.urutan).map((a) => {
+                    const colors = { pending: 'bg-gray-300', on_progress: 'bg-blue-400', selesai: 'bg-emerald-500', skip: 'bg-red-400' }
+                    return (
+                      <span
+                        key={a.id}
+                        className={`w-2.5 h-2.5 rounded-full ${colors[a.status] || 'bg-gray-200'}`}
+                        title={`${a.toko?.nama_toko}: ${ASSIGNMENT_STATUS[a.status]?.label}`}
+                      />
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>

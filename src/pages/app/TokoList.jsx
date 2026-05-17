@@ -106,7 +106,7 @@ export default function AppTokoList() {
                     </div>
                   </div>
                   <Badge variant={BADGE_VARIANT[a.status]||'secondary'}>
-                    {ASSIGNMENT_STATUS[a.status]?.icon} {ASSIGNMENT_STATUS[a.status]?.label}
+                    {ASSIGNMENT_STATUS[a.status]?.label}
                   </Badge>
                 </div>
                 {a.status === 'selesai' && trx && (

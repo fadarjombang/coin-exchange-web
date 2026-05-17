@@ -260,7 +260,7 @@ export default function TransaksiForm() {
               <span className="text-sm font-medium">SELISIH</span>
               <div className="flex items-center gap-2">
                 {selisih === 0
-                  ? <><CheckCircle2 size={16} className="text-emerald-600"/><Badge variant="success">✓ SEIMBANG</Badge></>
+                  ? <><CheckCircle2 size={16} className="text-emerald-600"/><Badge variant="success">SEIMBANG</Badge></>
                   : <><AlertCircle size={16} className="text-rose-600"/><Badge variant="destructive">{formatRupiah(selisih)}</Badge></>}
               </div>
             </div>
