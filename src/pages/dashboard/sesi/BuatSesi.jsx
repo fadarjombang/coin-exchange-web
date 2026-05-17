@@ -29,6 +29,7 @@ export default function BuatSesi() {
   const [driverList, setDriverList] = useState([])
   const [mobilList, setMobilList] = useState([])
   const [stok, setStok] = useState(null)
+  const [stokEfektif, setStokEfektif] = useState(null)  // stok dikurangi modal pending sesi lain
   const [tim, setTim] = useState({ tanggal: todayISO(), mobil_id: '', kasir_id: '', driver_id: '', nama_polisi: '' })
 
   // Step 2
@@ -53,6 +54,24 @@ export default function BuatSesi() {
       setMobilList(mobil.data || [])
       setTokoAll(tokoRes.data || [])
       setStok(stokRes.data)
+
+      // Hitung stok efektif: stok gudang dikurangi modal yang sudah dipesan oleh sesi pending_approval
+      const rawStok = stokRes.data
+      if (rawStok) {
+        const { data: pendingSesi } = await supabase
+          .from('modal_koin')
+          .select('*')
+          .in('sesi_tugas_id',
+            (await supabase.from('sesi_tugas').select('id').eq('status','pending_approval')).data?.map(s=>s.id) || []
+          )
+        const reserved = (pendingSesi || []).reduce((acc, m) => {
+          DENOM_LIST.forEach(d => { acc[d.key] = (acc[d.key] || 0) + (m[d.key] || 0) })
+          return acc
+        }, {})
+        const efektif = { ...rawStok }
+        DENOM_LIST.forEach(d => { efektif[d.key] = Math.max(0, (rawStok[d.key] || 0) - (reserved[d.key] || 0)) })
+        setStokEfektif(efektif)
+      }
     }
     loadMasterData()
   }, [])
@@ -81,9 +100,15 @@ export default function BuatSesi() {
     }
     if (step === 2) {
       if (modalTotal === 0) { toast({ title: 'Modal koin harus diisi', variant: 'destructive' }); return false }
+      const efektif = stokEfektif || stok   // fallback ke stok jika stokEfektif belum loaded
       for (const d of DENOM_LIST) {
-        if ((modal[d.key] || 0) > (stok?.[d.key] || 0)) {
-          toast({ title: `${d.label}: melebihi stok gudang (${formatRupiah(stok?.[d.key] || 0)})`, variant: 'destructive' }); return false
+        if ((modal[d.key] || 0) > (efektif?.[d.key] || 0)) {
+          const reserved = (stok?.[d.key] || 0) - (efektif?.[d.key] || 0)
+          toast({
+            title: `${d.label}: Melebihi stok tersedia!`,
+            description: `Stok total: ${formatRupiah(stok?.[d.key]||0)} | Sudah dipesan sesi lain: ${formatRupiah(reserved)} | Tersedia: ${formatRupiah(efektif?.[d.key]||0)}`,
+            variant: 'destructive'
+          }); return false
         }
       }
     }
@@ -235,16 +260,23 @@ export default function BuatSesi() {
             {step === 2 && (
               <div className="space-y-4">
                 {/* Stok Gudang dengan format Rupiah */}
-                {stok && (
-                  <div className="rounded-lg bg-muted/50 p-3">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">STOK GUDANG TERSEDIA</p>
+                {stok && stokEfektif && (
+                  <div className="rounded-lg bg-muted/50 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-muted-foreground">STOK TERSEDIA (setelah reservasi pending)</p>
+                      <Badge variant="outline" className="text-xs">Real-time</Badge>
+                    </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {DENOM_LIST.map((d) => (
-                        <div key={d.key} className="text-center">
-                          <p className="text-xs text-muted-foreground">{d.label}</p>
-                          <p className="text-sm font-bold">{formatRupiah(stok[d.key] || 0)}</p>
-                        </div>
-                      ))}
+                      {DENOM_LIST.map((d) => {
+                        const reserved = (stok[d.key] || 0) - (stokEfektif[d.key] || 0)
+                        return (
+                          <div key={d.key} className="text-center">
+                            <p className="text-xs text-muted-foreground">{d.label}</p>
+                            <p className={`text-sm font-bold ${stokEfektif[d.key] === 0 ? 'text-destructive' : ''}`}>{formatRupiah(stokEfektif[d.key] || 0)}</p>
+                            {reserved > 0 && <p className="text-xs text-amber-600">(-{formatRupiah(reserved)} pending)</p>}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -264,11 +296,11 @@ export default function BuatSesi() {
                             const val = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0
                             setModal((m) => ({ ...m, [d.key]: val }))
                           }}
-                          className={`h-9 pl-7 ${(modal[d.key] || 0) > (stok?.[d.key] || 0) ? 'border-destructive' : ''}`}
+                          className={`h-9 pl-7 ${(modal[d.key] || 0) > ((stokEfektif || stok)?.[d.key] || 0) ? 'border-destructive' : ''}`}
                         />
                       </div>
-                      {(modal[d.key] || 0) > (stok?.[d.key] || 0) && (
-                        <p className="text-xs text-destructive">Melebihi stok</p>
+                      {(modal[d.key] || 0) > ((stokEfektif || stok)?.[d.key] || 0) && (
+                        <p className="text-xs text-destructive">Melebihi stok tersedia</p>
                       )}
                     </div>
                   ))}

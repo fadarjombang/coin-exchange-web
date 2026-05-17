@@ -54,6 +54,15 @@ export default function SesiDetail() {
           .from('stok_gudang').select('*').single()
         if (stokErr || !currentStok) throw new Error('Stok gudang tidak ditemukan: ' + stokErr?.message)
 
+        // ⚠️ Safety check — pastikan stok masih cukup saat approve (prevent race condition)
+        const insufficientDenoms = DENOM_LIST.filter(d => (modalKoin[d.key] || 0) > (currentStok[d.key] || 0))
+        if (insufficientDenoms.length > 0) {
+          const detail = insufficientDenoms.map(d =>
+            `${d.label}: butuh ${formatRupiah(modalKoin[d.key])} tapi stok hanya ${formatRupiah(currentStok[d.key] || 0)}`
+          ).join('\n')
+          throw new Error(`Stok tidak mencukupi!\n${detail}\n\nKemungkinan sesi lain sudah diapprove lebih dulu. Kurangi modal sesi ini lalu coba lagi.`)
+        }
+
         // Hitung stok baru setelah dikurangi modal
         const updates = DENOM_LIST.reduce((acc, d) => {
           acc[d.key] = Math.max(0, (currentStok[d.key] || 0) - (modalKoin[d.key] || 0))
