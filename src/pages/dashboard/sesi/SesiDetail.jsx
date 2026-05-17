@@ -45,44 +45,80 @@ export default function SesiDetail() {
     setSaving(true)
     try {
       if (dialog === 'approve') {
-        // modal_koin dari Supabase join dikembalikan sebagai array — ambil elemen [0]
-        const modal = Array.isArray(sesi.modal_koin) ? sesi.modal_koin[0] : sesi.modal_koin
-        // Gunakan supabaseAdmin untuk bypass RLS (manager tidak diizinkan update stok via policy)
-        const { data: currentStok, error: stokErr } = await supabaseAdmin.from('stok_gudang').select('*').single()
-        if (stokErr) throw new Error('Gagal mengambil stok gudang: ' + stokErr.message)
-        if (!modal) throw new Error('Data modal koin tidak ditemukan pada sesi ini.')
+        // Fetch modal_koin LANGSUNG dari DB — jangan pakai sesi.modal_koin (bisa stale/null dari join)
+        const { data: modalKoin, error: modalErr } = await supabaseAdmin
+          .from('modal_koin').select('*').eq('sesi_tugas_id', id).single()
+        if (modalErr || !modalKoin) throw new Error('Data modal koin tidak ditemukan: ' + (modalErr?.message || 'null'))
 
+        const { data: currentStok, error: stokErr } = await supabaseAdmin
+          .from('stok_gudang').select('*').single()
+        if (stokErr || !currentStok) throw new Error('Stok gudang tidak ditemukan: ' + stokErr?.message)
+
+        // Hitung stok baru setelah dikurangi modal
         const updates = DENOM_LIST.reduce((acc, d) => {
-          acc[d.key] = Math.max(0, (currentStok[d.key] || 0) - (modal[d.key] || 0))
+          acc[d.key] = Math.max(0, (currentStok[d.key] || 0) - (modalKoin[d.key] || 0))
           return acc
         }, {})
-        const { error: updateStokErr } = await supabaseAdmin.from('stok_gudang')
+
+        const { error: updateErr } = await supabaseAdmin.from('stok_gudang')
           .update({ ...updates, updated_by: profile.id, last_updated: new Date().toISOString() })
           .eq('id', currentStok.id)
-        if (updateStokErr) throw new Error('Gagal update stok gudang: ' + updateStokErr.message)
-        await supabase.from('sesi_tugas').update({ status: 'active', approved_by: profile.id, approved_at: new Date().toISOString(), catatan_approval: catatan }).eq('id', id)
-        toast({ title: 'Disetujui', description: 'Sesi tugas berhasil disetujui. Stok gudang dikurangi.', variant: 'success' })
+        if (updateErr) throw new Error('Gagal update stok: ' + updateErr.message)
+
+        // Catat ke log
+        const deltaTotal = DENOM_LIST.reduce((sum, d) => sum - (modalKoin[d.key] || 0), 0)
+        await supabaseAdmin.from('stok_gudang_log').insert({
+          tipe: 'keluar_modal', keterangan: `Modal sesi keluar untuk ${id}`,
+          sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
+          ...DENOM_LIST.reduce((acc, d) => { acc[`delta_${d.key.replace('koin_', '')}`] = -(modalKoin[d.key] || 0); return acc }, {})
+        })
+
+        await supabase.from('sesi_tugas').update({
+          status: 'active', approved_by: profile.id,
+          approved_at: new Date().toISOString(), catatan_approval: catatan
+        }).eq('id', id)
+        const deducted = DENOM_LIST.filter(d => modalKoin[d.key] > 0).map(d => `${d.label}: -${formatRupiah(modalKoin[d.key])}`).join(', ')
+        toast({ title: '✅ Disetujui', description: `Stok gudang dikurangi: ${deducted || '(tidak ada modal)'}`, variant: 'success' })
+
       } else if (dialog === 'reject') {
         await supabase.from('sesi_tugas').update({ status: 'draft', catatan_approval: catatan }).eq('id', id)
         toast({ title: 'Ditolak', description: 'Sesi dikembalikan ke draft.' })
+
       } else if (dialog === 'approve_close') {
-        // rekonsiliasi dari Supabase join juga array — ambil elemen [0]
-        const rek = Array.isArray(sesi.rekonsiliasi) ? sesi.rekonsiliasi[0] : sesi.rekonsiliasi
-        const { data: currentStok, error: stokErr } = await supabaseAdmin.from('stok_gudang').select('*').single()
-        if (stokErr) throw new Error('Gagal mengambil stok gudang: ' + stokErr.message)
-        if (currentStok && rek) {
-          const updates = DENOM_LIST.reduce((acc, d) => {
-            const sisaKey = `sisa_koin_${d.key.replace('koin_', '')}`
-            acc[d.key] = (currentStok[d.key] || 0) + (rek[sisaKey] || 0)
-            return acc
-          }, {})
-          const { error: updateStokErr } = await supabaseAdmin.from('stok_gudang')
-            .update({ ...updates, updated_by: profile.id, last_updated: new Date().toISOString() })
-            .eq('id', currentStok.id)
-          if (updateStokErr) throw new Error('Gagal update stok gudang: ' + updateStokErr.message)
-        }
-        await supabase.from('sesi_tugas').update({ status: 'closed', closed_by: profile.id, closed_at: new Date().toISOString(), catatan_close: catatan }).eq('id', id)
-        toast({ title: 'Ditutup', description: 'Sesi berhasil ditutup. Sisa koin kembali ke stok gudang.', variant: 'success' })
+        // Fetch rekonsiliasi LANGSUNG dari DB
+        const { data: rek, error: rekErr } = await supabaseAdmin
+          .from('rekonsiliasi').select('*').eq('sesi_tugas_id', id).single()
+        if (rekErr || !rek) throw new Error('Data rekonsiliasi tidak ditemukan: ' + (rekErr?.message || 'null'))
+
+        const { data: currentStok, error: stokErr } = await supabaseAdmin
+          .from('stok_gudang').select('*').single()
+        if (stokErr || !currentStok) throw new Error('Stok gudang tidak ditemukan: ' + stokErr?.message)
+
+        // Tambah sisa koin ke stok
+        const updates = DENOM_LIST.reduce((acc, d) => {
+          const sisaKey = `sisa_koin_${d.key.replace('koin_', '')}`
+          acc[d.key] = (currentStok[d.key] || 0) + (rek[sisaKey] || 0)
+          return acc
+        }, {})
+
+        const { error: updateErr } = await supabaseAdmin.from('stok_gudang')
+          .update({ ...updates, updated_by: profile.id, last_updated: new Date().toISOString() })
+          .eq('id', currentStok.id)
+        if (updateErr) throw new Error('Gagal update stok: ' + updateErr.message)
+
+        // Catat ke log
+        const deltaTotal = DENOM_LIST.reduce((sum, d) => sum + (rek[`sisa_koin_${d.key.replace('koin_','')}` ] || 0), 0)
+        await supabaseAdmin.from('stok_gudang_log').insert({
+          tipe: 'masuk_sisa', keterangan: `Sisa koin kembali dari sesi ${id}`,
+          sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
+        })
+
+        await supabase.from('sesi_tugas').update({
+          status: 'closed', closed_by: profile.id,
+          closed_at: new Date().toISOString(), catatan_close: catatan
+        }).eq('id', id)
+        toast({ title: '✅ Ditutup', description: `Sisa koin kembali ke gudang: ${formatRupiah(deltaTotal)}`, variant: 'success' })
+
       } else if (dialog === 'reject_close') {
         await supabase.from('sesi_tugas').update({ status: 'active' }).eq('id', id)
         if (sesi.rekonsiliasi) await supabase.from('rekonsiliasi').delete().eq('sesi_tugas_id', id)
@@ -92,6 +128,7 @@ export default function SesiDetail() {
     } catch (err) { toast({ title: 'Gagal', description: err.message, variant: 'destructive' }) }
     finally { setSaving(false) }
   }
+
 
 
   if (loading) return (
