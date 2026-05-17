@@ -57,7 +57,8 @@ export default function BuatSesi() {
     loadMasterData()
   }, [])
 
-  const modalTotal = calculateDenomTotal(modal)
+  // Modal koin disimpan sebagai nilai rupiah per denom, total = jumlah semua nilai
+  const modalTotal = Object.values(modal).reduce((sum, v) => sum + (parseInt(v) || 0), 0)
 
   const validateStep = () => {
     if (step === 0) {
@@ -72,7 +73,7 @@ export default function BuatSesi() {
       if (modalTotal === 0) { toast({ title: 'Modal koin harus diisi', variant: 'destructive' }); return false }
       for (const d of DENOM_LIST) {
         if ((modal[d.key] || 0) > (stok?.[d.key] || 0)) {
-          toast({ title: `${d.label}: melebihi stok gudang (${stok?.[d.key] || 0} keping)`, variant: 'destructive' }); return false
+          toast({ title: `${d.label}: melebihi stok gudang (${formatRupiah(stok?.[d.key] || 0)})`, variant: 'destructive' }); return false
         }
       }
     }
@@ -223,17 +224,49 @@ export default function BuatSesi() {
             {/* Step 2 */}
             {step === 2 && (
               <div className="space-y-4">
-                {stok && <div className="rounded-lg bg-muted/50 p-3"><p className="text-xs font-medium text-muted-foreground mb-2">STOK GUDANG TERSEDIA</p><div className="grid grid-cols-4 gap-2">{DENOM_LIST.map((d) => <div key={d.key} className="text-center"><p className="text-xs text-muted-foreground">{d.label}</p><p className="text-sm font-bold">{stok[d.key] || 0}</p></div>)}</div></div>}
+                {/* Stok Gudang dengan format Rupiah */}
+                {stok && (
+                  <div className="rounded-lg bg-muted/50 p-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">STOK GUDANG TERSEDIA</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {DENOM_LIST.map((d) => (
+                        <div key={d.key} className="text-center">
+                          <p className="text-xs text-muted-foreground">{d.label}</p>
+                          <p className="text-sm font-bold">{formatRupiah(stok[d.key] || 0)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Input Nominal (bukan qty) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {DENOM_LIST.map((d) => (
                     <div key={d.key} className="space-y-1">
-                      <Label className="text-xs">{d.label}</Label>
-                      <Input type="number" min="0" max={stok?.[d.key] || 9999} value={modal[d.key] || 0}
-                        onChange={(e) => setModal((m) => ({ ...m, [d.key]: parseInt(e.target.value) || 0 }))}
-                        className={`h-9 ${(modal[d.key] || 0) > (stok?.[d.key] || 0) ? 'border-destructive' : ''}`} />
+                      <Label className="text-xs font-medium">{d.label}</Label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          max={stok?.[d.key] || undefined}
+                          step={d.value}
+                          value={modal[d.key] || ''}
+                          placeholder="0"
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0
+                            setModal((m) => ({ ...m, [d.key]: val }))
+                          }}
+                          className={`h-9 pl-7 ${(modal[d.key] || 0) > (stok?.[d.key] || 0) ? 'border-destructive' : ''}`}
+                        />
+                      </div>
+                      {(modal[d.key] || 0) > (stok?.[d.key] || 0) && (
+                        <p className="text-xs text-destructive">Melebihi stok</p>
+                      )}
                     </div>
                   ))}
                 </div>
+
                 <div className="rounded-lg border p-4 text-center">
                   <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Modal</p>
                   <p className="text-2xl font-bold text-primary mt-1">{formatRupiah(modalTotal)}</p>
