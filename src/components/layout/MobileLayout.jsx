@@ -42,12 +42,13 @@ export default function MobileLayout({ children, title, showBack = false, onBack
       </main>
 
       {/* Bottom Nav — fixed center, full max-w-md, always visible */}
-      <nav className="fixed bottom-0 left-0 right-0 flex justify-center z-30">
+      <nav className="tour-bottom-nav fixed bottom-0 left-0 right-0 flex justify-center z-30">
         <div className="w-full max-w-md bg-white border-t border-border flex shadow-lg">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end}
               className={({ isActive }) => cn(
                 'bottom-nav-item',
+                `tour-nav-${item.label}`,
                 isActive ? 'text-[#1e3a5f]' : 'text-muted-foreground hover:text-foreground'
               )}>
               <item.icon size={22} />

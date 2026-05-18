@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ROLE_LABELS, cn } from '@/lib/utils'
 
-function NavItem({ to, icon: Icon, label, badge, collapsed, end = false }) {
+function NavItem({ to, icon: Icon, label, badge, collapsed, end = false, className }) {
   return (
     <NavLink
       to={to}
@@ -20,7 +20,8 @@ function NavItem({ to, icon: Icon, label, badge, collapsed, end = false }) {
           'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
           isActive
             ? 'bg-white/15 text-white shadow-sm'
-            : 'text-blue-100/80 hover:bg-white/10 hover:text-white'
+            : 'text-blue-100/80 hover:bg-white/10 hover:text-white',
+          className
         )
       }
     >
@@ -52,19 +53,19 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
 
   const adminNav = [
     { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true },
-    { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount },
+    { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
     { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi' },
     { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko' },
     { to: '/dashboard/mobil',       icon: Car,             label: 'Master Mobil' },
-    { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang' },
+    { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
     { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan' },
   ]
   const managerNav = [
     { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true },
-    { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount },
+    { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
     { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi' },
     { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko' },
-    { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang' },
+    { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
     { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan' },
   ]
   const superNav = [
@@ -96,7 +97,7 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
       <Separator className="bg-white/10" />
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="tour-sidebar-nav flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => (
           <NavItem key={item.to} {...item} collapsed={collapsed} />
         ))}
@@ -186,7 +187,7 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
             </div>
           )}
 
-          <div className="flex items-center gap-2 border-l pl-4 ml-2">
+          <div className="tour-header-profile flex items-center gap-2 border-l pl-4 ml-2">
             <div className="w-7 h-7 rounded-full bg-[#1e3a5f] flex items-center justify-center">
               <span className="text-white text-xs font-bold">
                 {profile?.name?.charAt(0)?.toUpperCase() || 'U'}

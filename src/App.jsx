@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Toaster } from './components/ui/toaster'
+import TourGuide from './components/TourGuide'
 
 // Pages
 import Login from './pages/Login'
@@ -180,9 +181,9 @@ export default function App() {
             </ProtectedRoute>
           } />
 
-          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <TourGuide />
         <Toaster />
       </AuthProvider>
     </BrowserRouter>

@@ -34,6 +34,7 @@
     "lucide-react": "^0.400.0",
     "react": "^18",
     "react-dom": "^18",
+    "react-joyride": "^3.1.0",
     "react-router-dom": "^6",
     "signature_pad": "^4.2.0",
     "tailwind-merge": "^3.6.0",
