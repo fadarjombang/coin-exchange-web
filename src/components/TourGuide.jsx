@@ -18,42 +18,10 @@ export default function TourGuide() {
     else if (roles.includes('admin')) currentRole = 'admin'
     else if (roles.includes('manager')) currentRole = 'manager'
 
-    // Kasir has a simple dedicated mobile tour
+    // Kasir has no tour guide on the mobile app
     if (currentRole === 'kasir') {
-      const tourKey = `tour_completed_kasir_${location.pathname}`
-      if (localStorage.getItem(tourKey)) {
-        setRun(false)
-        setSteps([])
-        return
-      }
-
-      let newSteps = []
-      if (location.pathname === '/app') {
-        newSteps = [
-          { target: 'body', content: 'Halo Kasir! Mari lihat cara kerja aplikasi ini.', placement: 'center', disableBeacon: true },
-          { target: '.tour-nav-Toko', content: 'Tugas harian Anda ada di menu Toko ini. Klik untuk melihat daftar kunjungan.', placement: 'top' }
-        ]
-      } else if (location.pathname === '/app/toko') {
-        newSteps = [
-          { target: 'body', content: 'Daftar Tugas Toko', placement: 'center', disableBeacon: true },
-          { target: '.p-4', content: 'Ini adalah daftar toko yang harus dikunjungi. Klik "Mulai Kunjungan" saat Anda tiba di lokasi.', placement: 'top' }
-        ]
-      } else if (location.pathname.includes('/transaksi')) {
-        newSteps = [
-          { target: 'body', content: 'Form Transaksi Serah Terima', placement: 'center', disableBeacon: true },
-          { target: '.p-4 > div:nth-child(3)', content: 'Masukkan TOTAL NILAI Rupiah untuk setiap koin yang diserahkan ke toko.', placement: 'top' },
-          { target: '.p-4 > div:nth-child(4)', content: 'Masukkan jumlah nilai uang besar yang diterima. Pastikan kotak selisih berwarna hijau (SEIMBANG) sebelum bisa Simpan.', placement: 'top' }
-        ]
-      }
-
-      if (newSteps.length > 0) {
-        setSteps(newSteps)
-        const timer = setTimeout(() => setRun(true), 800)
-        return () => clearTimeout(timer)
-      } else {
-        setRun(false)
-        setSteps([])
-      }
+      setRun(false)
+      setSteps([])
       return
     }
 
