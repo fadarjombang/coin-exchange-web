@@ -19,6 +19,8 @@ export default function TokoList() {
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
   const [importing, setImporting] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const fileRef = useRef(null)
 
   const fetch = useCallback(async () => {
@@ -28,6 +30,10 @@ export default function TokoList() {
     setLoading(false)
   }, [])
   useEffect(() => { fetch() }, [fetch])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search])
 
   const handleImportExcel = async (e) => {
     const file = e.target.files?.[0]; if (!file) return
@@ -40,17 +46,18 @@ export default function TokoList() {
       const ws   = wb.Sheets[wb.SheetNames[0]]
       const json = XLSX.utils.sheet_to_json(ws, { defval: '' })
 
-      // Map ke kolom toko (toleran terhadap nama kolom dengan atau tanpa spasi)
       const rows = json.map((r) => ({
         kode_toko: String(r['kode_toko'] || r['Kode Toko'] || r['KODE_TOKO'] || '').trim(),
         nama_toko: String(r['nama_toko'] || r['Nama Toko'] || r['NAMA_TOKO'] || '').trim(),
         area:      String(r['area']      || r['Area']      || '').trim() || null,
         alamat:    String(r['alamat']    || r['Alamat']    || '').trim() || null,
+        as:        String(r['as']        || r['AS']        || r['Area Supervisor'] || '').trim() || null,
+        am:        String(r['am']        || r['AM']        || r['Area Manager']    || '').trim() || null,
         is_active: true,
       })).filter((r) => r.kode_toko && r.nama_toko)
 
       if (rows.length === 0) {
-        toast({ title: 'File kosong', description: 'Tidak ada baris valid. Pastikan kolom: kode_toko, nama_toko, area, alamat', variant: 'destructive' })
+        toast({ title: 'File kosong', description: 'Tidak ada baris valid. Pastikan kolom: kode_toko, nama_toko, area, alamat, AS, AM', variant: 'destructive' })
         return
       }
 
@@ -70,13 +77,13 @@ export default function TokoList() {
   const handleDownloadTemplate = async () => {
     const XLSX = await import('xlsx')
     const data = [
-      { 'Kode Toko': 'IDFM-991', 'Nama Toko': 'Indomaret Contoh 1', 'Area': 'Jakarta', 'Alamat': 'Jl. Contoh No. 123' },
-      { 'Kode Toko': 'IDFM-992', 'Nama Toko': 'Indomaret Contoh 2', 'Area': 'Surabaya', 'Alamat': 'Jl. Sample No. 45' }
+      { 'Kode Toko': 'IDFM-991', 'Nama Toko': 'Indomaret Contoh 1', 'Area': 'Jakarta', 'Alamat': 'Jl. Contoh No. 123', 'AS': 'Supervisor A', 'AM': 'Manager A' },
+      { 'Kode Toko': 'IDFM-992', 'Nama Toko': 'Indomaret Contoh 2', 'Area': 'Surabaya', 'Alamat': 'Jl. Sample No. 45', 'AS': 'Supervisor B', 'AM': 'Manager B' }
     ]
     const ws = XLSX.utils.json_to_sheet(data)
     
     // Auto-size columns slightly
-    ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 40 }]
+    ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 40 }, { wch: 20 }, { wch: 20 }]
     
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Template Toko')
@@ -86,6 +93,10 @@ export default function TokoList() {
   const filtered = toko.filter((t) =>
     !search || t.nama_toko.toLowerCase().includes(search.toLowerCase()) || t.kode_toko.toLowerCase().includes(search.toLowerCase())
   )
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedToko = filtered.slice(startIndex, startIndex + itemsPerPage)
 
   return (
     <DashboardLayout>
@@ -138,7 +149,9 @@ export default function TokoList() {
               <TableBody>
                 {loading ? Array.from({length:5}).map((_,i)=>(
                   <TableRow key={i}>{Array.from({length:6}).map((_,j)=><TableCell key={j}><Skeleton className="h-4 w-full"/></TableCell>)}</TableRow>
-                )) : filtered.map((t) => (
+                )) : paginatedToko.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Tidak ada toko ditemukan</TableCell></TableRow>
+                ) : paginatedToko.map((t) => (
                   <TableRow key={t.id} className="cursor-pointer" onClick={() => navigate(`/dashboard/toko/edit/${t.id}`)}>
                     <TableCell className="font-mono font-medium">{t.kode_toko}</TableCell>
                     <TableCell>{t.nama_toko}</TableCell>
@@ -154,6 +167,36 @@ export default function TokoList() {
                 ))}
               </TableBody>
             </Table>
+
+            {/* Pagination Controls */}
+            {!loading && totalPages > 1 && (
+              <div className="flex items-center justify-between p-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Menampilkan {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filtered.length)} dari {filtered.length} toko
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Sebelumnya
+                  </Button>
+                  <div className="text-xs font-medium px-2">
+                    {currentPage} / {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Berikutnya
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

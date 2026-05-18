@@ -36,24 +36,47 @@ export default function BuatSesi() {
   const [tokoAll, setTokoAll] = useState([])
   const [selectedToko, setSelectedToko] = useState([])
   const [tokoSearch, setTokoSearch] = useState('')
+  const [tokoSkipStats, setTokoSkipStats] = useState({})
+  const [tokoAlokasi, setTokoAlokasi] = useState({})
+  const [bulkAlokasi, setBulkAlokasi] = useState('500000')
 
   // Step 3
   const [modal, setModal] = useState(emptyDenoms())
 
   useEffect(() => {
+    // Notify TourGuide of step changes
+    window.dispatchEvent(new CustomEvent('buat_sesi_step_change', { detail: step }))
+  }, [step])
+
+  useEffect(() => {
     const loadMasterData = async () => {
-      const [kasir, driver, mobil, tokoRes, stokRes] = await Promise.all([
+      const [kasir, driver, mobil, tokoRes, stokRes, assignHistory] = await Promise.all([
         supabase.from('users').select('id,name').contains('role', ['kasir']).eq('is_active', true),
         supabase.from('users').select('id,name').contains('role', ['driver']).eq('is_active', true),
         supabase.from('mobil').select('id,nopol').eq('is_active', true),
         supabase.from('toko').select('id,kode_toko,nama_toko,area').eq('is_active', true).order('kode_toko'),
         supabase.from('stok_gudang').select('*').single(),
+        supabase.from('toko_assignment').select('toko_id, status'),
       ])
       setKasirList(kasir.data || [])
       setDriverList(driver.data || [])
       setMobilList(mobil.data || [])
       setTokoAll(tokoRes.data || [])
       setStok(stokRes.data)
+
+      const skipStats = {}
+      if (assignHistory.data) {
+        assignHistory.data.forEach(a => {
+          if (!skipStats[a.toko_id]) {
+            skipStats[a.toko_id] = { total: 0, skipped: 0 }
+          }
+          skipStats[a.toko_id].total += 1
+          if (a.status === 'skip') {
+            skipStats[a.toko_id].skipped += 1
+          }
+        })
+      }
+      setTokoSkipStats(skipStats)
 
       // Hitung stok efektif: stok gudang dikurangi modal yang sudah dipesan oleh sesi pending_approval
       const rawStok = stokRes.data
@@ -100,6 +123,14 @@ export default function BuatSesi() {
     }
     if (step === 2) {
       if (modalTotal === 0) { toast({ title: 'Modal koin harus diisi', variant: 'destructive' }); return false }
+      const totalAlokasi = selectedToko.reduce((sum, id) => sum + (parseInt(tokoAlokasi[id]) || 0), 0)
+      if (modalTotal !== totalAlokasi) {
+        toast({
+          title: 'Nominal modal koin tidak cocok!',
+          description: `Total Modal Koin: ${formatRupiah(modalTotal)} | Total Alokasi Toko: ${formatRupiah(totalAlokasi)} (Selisih: ${formatRupiah(modalTotal - totalAlokasi)})`,
+          variant: 'destructive'
+        }); return false
+      }
       const efektif = stokEfektif || stok   // fallback ke stok jika stokEfektif belum loaded
       for (const d of DENOM_LIST) {
         if ((modal[d.key] || 0) > (efektif?.[d.key] || 0)) {
@@ -119,7 +150,18 @@ export default function BuatSesi() {
   const prev = () => setStep((s) => s - 1)
 
   const toggleToko = (id) => {
-    setSelectedToko((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
+    setSelectedToko((prev) => {
+      const exists = prev.includes(id)
+      if (exists) {
+        return prev.filter((x) => x !== id)
+      } else {
+        setTokoAlokasi(prevAlok => ({
+          ...prevAlok,
+          [id]: prevAlok[id] || '500000'
+        }))
+        return [...prev, id]
+      }
+    })
   }
 
   const moveToko = (id, dir) => {
@@ -148,6 +190,7 @@ export default function BuatSesi() {
 
       const assignments = selectedToko.map((tokoId, i) => ({
         sesi_tugas_id: sesiData.id, toko_id: tokoId, urutan: i + 1,
+        alokasi_koin: parseInt(tokoAlokasi[tokoId]) || 0,
       }))
       await supabase.from('toko_assignment').insert(assignments)
 
@@ -213,7 +256,7 @@ export default function BuatSesi() {
                     <SelectContent>{driverList.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5"><Label>Nama Polisi (STNK) *</Label><Input value={tim.nama_polisi} onChange={(e) => setTim((t) => ({ ...t, nama_polisi: e.target.value }))} placeholder="Nama di STNK" /></div>
+                <div className="space-y-1.5"><Label>Polisi / Pengawal *</Label><Input value={tim.nama_polisi} onChange={(e) => setTim((t) => ({ ...t, nama_polisi: e.target.value }))} placeholder="Nama Polisi / Pengawal" /></div>
               </>
             )}
 
@@ -223,33 +266,98 @@ export default function BuatSesi() {
                 <Input placeholder="Cari toko..." value={tokoSearch} onChange={(e) => setTokoSearch(e.target.value)} />
                 <p className="text-xs text-muted-foreground">{selectedToko.length} toko dipilih</p>
                 <div className="max-h-72 overflow-y-auto space-y-1.5 border rounded-lg p-2">
-                  {filteredToko.map((t) => (
-                    <label key={t.id} className="flex items-center gap-3 p-2.5 rounded-md hover:bg-muted cursor-pointer">
-                      <Checkbox checked={selectedToko.includes(t.id)} onCheckedChange={() => toggleToko(t.id)} id={`toko-${t.id}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{t.nama_toko}</p>
-                        <p className="text-xs text-muted-foreground">{t.kode_toko} · {t.area}</p>
-                      </div>
-                    </label>
-                  ))}
+                  {filteredToko.map((t) => {
+                    const stat = tokoSkipStats[t.id]
+                    const isLowPriority = stat && stat.total >= 2 && Math.round((stat.skipped / stat.total) * 100) >= 50
+                    return (
+                      <label key={t.id} className="flex items-center gap-3 p-2.5 rounded-md hover:bg-muted cursor-pointer">
+                        <Checkbox checked={selectedToko.includes(t.id)} onCheckedChange={() => toggleToko(t.id)} id={`toko-${t.id}`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">{t.nama_toko}</p>
+                            {isLowPriority && (
+                              <Badge variant="outline" className="text-[10px] border-rose-200 bg-rose-50 text-rose-700 px-1.5 py-0">
+                                Prioritas Rendah
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{t.kode_toko} · {t.area}</p>
+                        </div>
+                      </label>
+                    )
+                  })}
                 </div>
                 {selectedToko.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Urutan Kunjungan:</p>
-                    <div className="space-y-1.5">
-                      {selectedToko.map((id, i) => {
-                        const t = tokoAll.find((x) => x.id === id)
-                        return (
-                          <div key={id} className="flex items-center gap-2 p-2.5 border rounded-lg bg-muted/30">
-                            <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold flex-shrink-0">{i + 1}</span>
-                            <p className="text-sm flex-1">{t?.nama_toko}</p>
-                            <div className="flex flex-col gap-0.5">
-                              <button onClick={() => moveToko(id, -1)} disabled={i === 0} className="p-0.5 hover:bg-muted rounded disabled:opacity-30"><ChevronUp size={14} /></button>
-                              <button onClick={() => moveToko(id, 1)} disabled={i === selectedToko.length - 1} className="p-0.5 hover:bg-muted rounded disabled:opacity-30"><ChevronDown size={14} /></button>
+                  <div className="space-y-3">
+                    <Separator className="my-2" />
+                    <div className="flex items-end gap-3 p-3 bg-muted/40 rounded-lg border">
+                      <div className="flex-1 space-y-1.5">
+                        <Label htmlFor="bulk-alokasi" className="text-xs font-semibold">Terapkan Alokasi Sama Rata (Rp)</Label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
+                          <Input
+                            id="bulk-alokasi"
+                            type="text" inputMode="numeric"
+                            value={bulkAlokasi ? parseInt(bulkAlokasi.replace(/\D/g, '') || 0).toLocaleString('id-ID') : ''}
+                            onChange={(e) => setBulkAlokasi(e.target.value.replace(/\D/g, ''))}
+                            placeholder="Contoh: 500.000"
+                            className="pl-8 text-xs h-8"
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-8 text-xs font-semibold"
+                        onClick={() => {
+                          const val = bulkAlokasi || '0'
+                          const newAlok = {}
+                          selectedToko.forEach(id => { newAlok[id] = val })
+                          setTokoAlokasi(newAlok)
+                          toast({ title: 'Berhasil disamaratakan', description: `Alokasi semua toko diatur ke Rp ${parseInt(val).toLocaleString('id-ID')}`, variant: 'success' })
+                        }}
+                      >
+                        Terapkan
+                      </Button>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">Urutan & Alokasi Koin:</p>
+                      <div className="space-y-1.5">
+                        {selectedToko.map((id, i) => {
+                          const t = tokoAll.find((x) => x.id === id)
+                          return (
+                            <div key={id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-2.5 border rounded-lg bg-muted/20">
+                              <div className="flex items-center gap-2 flex-1">
+                                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold flex-shrink-0">{i + 1}</span>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{t?.nama_toko}</p>
+                                  <p className="text-[10px] text-muted-foreground">{t?.kode_toko}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <div className="relative w-36">
+                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
+                                  <Input
+                                    type="text" inputMode="numeric"
+                                    value={tokoAlokasi[id] ? parseInt(tokoAlokasi[id]).toLocaleString('id-ID') : ''}
+                                    placeholder="0"
+                                    onChange={(e) => {
+                                      const val = e.target.value.replace(/\D/g, '')
+                                      setTokoAlokasi(prev => ({ ...prev, [id]: val }))
+                                    }}
+                                    className="pl-8 text-xs h-8 text-right font-medium"
+                                  />
+                                </div>
+                                <div className="flex gap-0.5 border rounded p-0.5 bg-white">
+                                  <button type="button" onClick={() => moveToko(id, -1)} disabled={i === 0} className="p-0.5 hover:bg-muted rounded disabled:opacity-30"><ChevronUp size={12} /></button>
+                                  <button type="button" onClick={() => moveToko(id, 1)} disabled={i === selectedToko.length - 1} className="p-0.5 hover:bg-muted rounded disabled:opacity-30"><ChevronDown size={12} /></button>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -306,10 +414,32 @@ export default function BuatSesi() {
                   ))}
                 </div>
 
-                <div className="rounded-lg border p-4 text-center">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Modal</p>
-                  <p className="text-2xl font-bold text-primary mt-1">{formatRupiah(modalTotal)}</p>
+                <div className="grid grid-cols-2 gap-4 rounded-lg border p-4">
+                  <div className="text-center border-r">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Target Alokasi Toko</p>
+                    <p className="text-2xl font-bold text-amber-600 mt-1">
+                      {formatRupiah(selectedToko.reduce((sum, id) => sum + (parseInt(tokoAlokasi[id]) || 0), 0))}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Modal Terinput</p>
+                    <p className={`text-2xl font-bold mt-1 ${modalTotal === selectedToko.reduce((sum, id) => sum + (parseInt(tokoAlokasi[id]) || 0), 0) ? 'text-green-600' : 'text-destructive'}`}>
+                      {formatRupiah(modalTotal)}
+                    </p>
+                  </div>
                 </div>
+
+                {modalTotal !== selectedToko.reduce((sum, id) => sum + (parseInt(tokoAlokasi[id]) || 0), 0) && (
+                  <p className="text-xs text-center text-destructive font-medium mt-1">
+                    Selisih: {formatRupiah(modalTotal - selectedToko.reduce((sum, id) => sum + (parseInt(tokoAlokasi[id]) || 0), 0))} (Total modal harus sama persis dengan target alokasi toko)
+                  </p>
+                )}
+                
+                {modalTotal === selectedToko.reduce((sum, id) => sum + (parseInt(tokoAlokasi[id]) || 0), 0) && (
+                  <p className="text-xs text-center text-green-600 font-semibold mt-1">
+                    Uang Modal Seimbang (Sesuai Target Alokasi Toko)
+                  </p>
+                )}
               </div>
             )}
 
@@ -322,16 +452,22 @@ export default function BuatSesi() {
                     { label: 'Kendaraan', value: mobilList.find(m => m.id === tim.mobil_id)?.nopol },
                     { label: 'Kasir', value: kasirList.find(k => k.id === tim.kasir_id)?.name },
                     { label: 'Driver', value: driverList.find(d => d.id === tim.driver_id)?.name },
+                    { label: 'Polisi / Pengawal', value: tim.nama_polisi },
                   ].map(({ label, value }) => (
                     <div key={label} className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-semibold mt-0.5">{value || '-'}</p></div>
                   ))}
                 </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground mb-2">TOKO ({selectedToko.length})</p>
+                 <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground mb-2">TOKO & ALOKASI ({selectedToko.length})</p>
                   <div className="space-y-1">
                     {selectedToko.map((id, i) => {
                       const t = tokoAll.find((x) => x.id === id)
-                      return <p key={id}>{i + 1}. {t?.nama_toko} <span className="text-muted-foreground text-xs">({t?.kode_toko})</span></p>
+                      return (
+                        <div key={id} className="flex justify-between py-0.5">
+                          <span>{i + 1}. {t?.nama_toko} <span className="text-muted-foreground text-xs">({t?.kode_toko})</span></span>
+                          <span className="font-semibold">{formatRupiah(parseInt(tokoAlokasi[id]) || 0)}</span>
+                        </div>
+                      )
                     })}
                   </div>
                 </div>
@@ -350,11 +486,11 @@ export default function BuatSesi() {
           <div className="flex gap-2">
             {step === STEPS.length - 1 ? (
               <>
-                <Button variant="outline" onClick={() => handleSubmit(true)} disabled={saving}>{saving && <Loader2 size={14} className="animate-spin mr-1" />}Simpan Draft</Button>
-                <Button onClick={() => handleSubmit(false)} disabled={saving}>{saving && <Loader2 size={14} className="animate-spin mr-1" />}Kirim ke Manager</Button>
+                <Button variant="outline" onClick={() => handleSubmit(true)} disabled={saving} id="btn-simpan-draft">{saving && <Loader2 size={14} className="animate-spin mr-1" />}Simpan Draft</Button>
+                <Button onClick={() => handleSubmit(false)} disabled={saving} id="btn-kirim-manager">{saving && <Loader2 size={14} className="animate-spin mr-1" />}Kirim ke Manager</Button>
               </>
             ) : (
-              <Button onClick={next}>Lanjut <ArrowRight size={16} /></Button>
+              <Button onClick={next} id="btn-lanjut">Lanjut <ArrowRight size={16} /></Button>
             )}
           </div>
         </div>

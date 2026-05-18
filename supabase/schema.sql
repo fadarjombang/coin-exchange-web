@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS toko (
   nama_toko  TEXT        NOT NULL,
   alamat     TEXT,
   area       TEXT,
+  "as"       TEXT,
+  am         TEXT,
   is_active  BOOLEAN     DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );

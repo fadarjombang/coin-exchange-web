@@ -45,6 +45,10 @@ export default function StokGudang() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('stok_edit_mode_change', { detail: editMode }))
+  }, [editMode])
+
   const handleInputChange = (key, rawValue) => {
     // Hapus non-digit, parse ke angka
     const num = parseInt(rawValue.replace(/\D/g, ''), 10) || 0
@@ -99,12 +103,12 @@ export default function StokGudang() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={fetchData}><RefreshCw size={14} /></Button>
-            {!editMode && isAdmin && <Button size="sm" onClick={() => setEditMode(true)}>Penyesuaian Manual</Button>}
+            {!editMode && isAdmin && <Button size="sm" onClick={() => setEditMode(true)} id="btn-penyesuaian">Penyesuaian Manual</Button>}
           </div>
         </div>
 
         {/* Total Card */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" id="stok-total-cards">
           <Card className="sm:col-span-1 bg-primary text-primary-foreground">
             <CardContent className="p-5">
               <p className="text-primary-foreground/70 text-xs uppercase tracking-wide">Total Nilai Gudang</p>
@@ -167,7 +171,7 @@ export default function StokGudang() {
 
         {/* Edit Form */}
         {editMode && (
-          <Card className="border-primary/30 bg-primary/5">
+          <Card className="border-primary/30 bg-primary/5" id="tour-stok-edit-form">
             <CardHeader>
               <CardTitle className="text-base">Penyesuaian Manual</CardTitle>
               <CardDescription>Masukkan <strong>nilai Rupiah</strong> per denominasi (bukan jumlah keping/lembar)</CardDescription>
@@ -214,13 +218,13 @@ export default function StokGudang() {
                   ))}
                 </div>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" id="tour-stok-keterangan">
                 <Label>Keterangan</Label>
                 <Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="Alasan penyesuaian..." rows={2} />
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => { setEditMode(false); setForm(stok) }}>Batal</Button>
-                <Button onClick={handleSave} disabled={saving}>
+                <Button onClick={handleSave} disabled={saving} id="btn-simpan-stok">
                   {saving && <Loader2 size={14} className="animate-spin mr-1" />}
                   <Save size={14} />Simpan
                 </Button>
@@ -230,7 +234,7 @@ export default function StokGudang() {
         )}
 
         {/* Log */}
-        <Card>
+        <Card id="tour-stok-log">
           <CardHeader><CardTitle className="text-base">History Log Perubahan</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table>

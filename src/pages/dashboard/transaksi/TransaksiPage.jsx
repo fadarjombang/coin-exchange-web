@@ -16,12 +16,12 @@ import { formatRupiah, formatDateTime, formatDate, todayISO } from '@/lib/utils'
 export default function TransaksiPage() {
   const navigate = useNavigate()
   const [rows, setRows]       = useState([])
-  const [toko, setToko]       = useState([])
+  const [areas, setAreas]     = useState([])
   const [loading, setLoading] = useState(true)
 
   // Filters
   const [search, setSearch]     = useState('')
-  const [tokoId, setTokoId]     = useState('all')
+  const [selectedArea, setSelectedArea] = useState('all')
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 30)
     return d.toISOString().split('T')[0]
@@ -31,29 +31,32 @@ export default function TransaksiPage() {
   const fetch = useCallback(async () => {
     setLoading(true)
     let q = supabase.from('transaksi')
-      .select('*, toko:toko_id(kode_toko, nama_toko), kasir:kasir_id(name), sesi:sesi_tugas_id(tanggal)')
+      .select('*, toko:toko_id(kode_toko, nama_toko, area), kasir:kasir_id(name), sesi:sesi_tugas_id(tanggal)')
       .gte('created_at', `${dateFrom}T00:00:00`)
       .lte('created_at', `${dateTo}T23:59:59`)
       .order('created_at', { ascending: false })
 
-    if (tokoId !== 'all') q = q.eq('toko_id', tokoId)
-
     const { data } = await q
     setRows(data || [])
     setLoading(false)
-  }, [dateFrom, dateTo, tokoId])
+  }, [dateFrom, dateTo])
 
   useEffect(() => { fetch() }, [fetch])
   useEffect(() => {
-    supabase.from('toko').select('id,kode_toko,nama_toko').order('kode_toko')
-      .then(({ data }) => setToko(data || []))
+    supabase.from('toko').select('area')
+      .then(({ data }) => {
+        const unique = Array.from(new Set((data || []).map(t => t.area).filter(Boolean))).sort()
+        setAreas(unique)
+      })
   }, [])
 
-  const filtered = rows.filter((r) =>
-    !search || r.toko?.nama_toko?.toLowerCase().includes(search.toLowerCase())
+  const filtered = rows.filter((r) => {
+    const matchesSearch = !search || r.toko?.nama_toko?.toLowerCase().includes(search.toLowerCase())
       || r.toko?.kode_toko?.toLowerCase().includes(search.toLowerCase())
       || r.kasir?.name?.toLowerCase().includes(search.toLowerCase())
-  )
+    const matchesArea = selectedArea === 'all' || r.toko?.area === selectedArea
+    return matchesSearch && matchesArea
+  })
 
   // Summary stats
   const totalNilai = filtered.reduce((s, r) => s + (r.total_koin_nilai || 0), 0)
@@ -86,13 +89,13 @@ export default function TransaksiPage() {
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Receipt size={20} className="text-primary" /></div>
             <div><h1 className="page-title">Transaksi</h1><p className="page-subtitle">Detail transaksi per toko untuk analisis kebutuhan koin</p></div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0} id="btn-export-csv">
             <Download size={14} /> Export CSV
           </Button>
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" id="tour-trx-summary">
           {[
             { label: 'Total Transaksi', value: filtered.length, isMoney: false },
             { label: 'Total Koin Keluar', value: formatRupiah(totalNilai) },
@@ -111,7 +114,7 @@ export default function TransaksiPage() {
         </div>
 
         {/* Filters */}
-        <Card>
+        <Card id="tour-trx-filters">
           <CardContent className="p-4">
             <div className="flex flex-wrap gap-3 items-end">
               <div className="space-y-1 flex-1 min-w-[140px]">
@@ -122,30 +125,30 @@ export default function TransaksiPage() {
                 <Label className="text-xs">Sampai Tanggal</Label>
                 <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9" />
               </div>
-              <div className="space-y-1 w-52">
-                <Label className="text-xs">Filter Toko</Label>
-                <Select value={tokoId} onValueChange={setTokoId}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Semua Toko" /></SelectTrigger>
+              <div className="space-y-1 w-52" id="tour-trx-area-select">
+                <Label className="text-xs">Filter Area</Label>
+                <Select value={selectedArea} onValueChange={setSelectedArea}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Semua Area" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Semua Toko</SelectItem>
-                    {toko.map((t) => <SelectItem key={t.id} value={t.id}>{t.kode_toko} — {t.nama_toko}</SelectItem>)}
+                    <SelectItem value="all">Semua Area</SelectItem>
+                    {areas.map((area) => <SelectItem key={area} value={area}>{area}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="relative flex-1 min-w-[160px]">
+              <div className="relative flex-1 min-w-[160px]" id="tour-trx-search">
                 <Label className="text-xs">Cari</Label>
                 <div className="relative mt-1">
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nama / kode toko / kasir..." className="h-9 pl-8" />
                 </div>
               </div>
-              <Button size="sm" onClick={fetch}><Filter size={14} /> Terapkan</Button>
+              <Button size="sm" onClick={fetch} id="btn-terapkan-filter"><Filter size={14} /> Terapkan</Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Table */}
-        <Card>
+        <Card id="tour-trx-table">
           <CardContent className="p-0">
             <Table>
               <TableHeader>

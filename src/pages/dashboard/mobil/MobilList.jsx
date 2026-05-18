@@ -20,7 +20,7 @@ export default function MobilList() {
   const [dialog, setDialog]     = useState(false)
   const [saving, setSaving]     = useState(false)
   const [editing, setEditing]   = useState(null)
-  const [form, setForm]         = useState({ nopol: '', is_active: true })
+  const [form, setForm]         = useState({ nopol: '', jenis_kendaraan: '', warna_mobil: '', is_active: true })
 
   const fetch = useCallback(async () => {
     setLoading(true)
@@ -30,18 +30,18 @@ export default function MobilList() {
   }, [])
   useEffect(() => { fetch() }, [fetch])
 
-  const openAdd  = () => { setEditing(null); setForm({ nopol: '', is_active: true }); setDialog(true) }
-  const openEdit = (m) => { setEditing(m); setForm({ nopol: m.nopol, is_active: m.is_active }); setDialog(true) }
+  const openAdd  = () => { setEditing(null); setForm({ nopol: '', jenis_kendaraan: '', warna_mobil: '', is_active: true }); setDialog(true) }
+  const openEdit = (m) => { setEditing(m); setForm({ nopol: m.nopol, jenis_kendaraan: m.jenis_kendaraan || '', warna_mobil: m.warna_mobil || '', is_active: m.is_active }); setDialog(true) }
 
   const handleSave = async () => {
     if (!form.nopol.trim()) return toast({ title: 'Nopol harus diisi', variant: 'destructive' })
     setSaving(true)
     try {
       if (editing) {
-        const { error } = await supabase.from('mobil').update({ nopol: form.nopol, is_active: form.is_active }).eq('id', editing.id)
+        const { error } = await supabase.from('mobil').update({ nopol: form.nopol, jenis_kendaraan: form.jenis_kendaraan || null, warna_mobil: form.warna_mobil || null, is_active: form.is_active }).eq('id', editing.id)
         if (error) throw error
       } else {
-        const { error } = await supabase.from('mobil').insert({ nopol: form.nopol })
+        const { error } = await supabase.from('mobil').insert({ nopol: form.nopol, jenis_kendaraan: form.jenis_kendaraan || null, warna_mobil: form.warna_mobil || null })
         if (error) throw error
       }
       toast({ title: 'Berhasil', description: `Mobil berhasil ${editing ? 'diperbarui' : 'ditambahkan'}`, variant: 'success' })
@@ -63,12 +63,14 @@ export default function MobilList() {
         <Card>
           <CardContent className="p-0">
             <Table>
-              <TableHeader><TableRow><TableHead>Nopol</TableHead><TableHead>Status</TableHead><TableHead>Ditambahkan</TableHead><TableHead /></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Nopol</TableHead><TableHead>Jenis Kendaraan</TableHead><TableHead>Warna</TableHead><TableHead>Status</TableHead><TableHead>Ditambahkan</TableHead><TableHead /></TableRow></TableHeader>
               <TableBody>
-                {loading ? Array.from({length:3}).map((_,i)=><TableRow key={i}><TableCell colSpan={4}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell></TableRow>)
+                {loading ? Array.from({length:3}).map((_,i)=><TableRow key={i}><TableCell colSpan={6}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell></TableRow>)
                 : mobil.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell className="font-mono font-medium">{m.nopol}</TableCell>
+                    <TableCell>{m.jenis_kendaraan || '-'}</TableCell>
+                    <TableCell>{m.warna_mobil || '-'}</TableCell>
                     <TableCell><Badge variant={m.is_active ? 'success' : 'destructive'}>{m.is_active ? 'Aktif' : 'Nonaktif'}</Badge></TableCell>
                     <TableCell className="text-muted-foreground text-sm">{formatDateTime(m.created_at)}</TableCell>
                     <TableCell><Button variant="ghost" size="sm" onClick={() => openEdit(m)}>Edit</Button></TableCell>
@@ -84,6 +86,8 @@ export default function MobilList() {
           <DialogHeader><DialogTitle>{editing ? 'Edit Mobil' : 'Tambah Mobil'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5"><Label htmlFor="nopol">Nomor Polisi *</Label><Input id="nopol" value={form.nopol} onChange={(e) => setForm((f) => ({ ...f, nopol: e.target.value }))} placeholder="Contoh: B 1234 XYZ" /></div>
+            <div className="space-y-1.5"><Label htmlFor="jenis_kendaraan">Jenis Kendaraan</Label><Input id="jenis_kendaraan" value={form.jenis_kendaraan} onChange={(e) => setForm((f) => ({ ...f, jenis_kendaraan: e.target.value }))} placeholder="Contoh: GRANDMAX" /></div>
+            <div className="space-y-1.5"><Label htmlFor="warna_mobil">Warna Mobil</Label><Input id="warna_mobil" value={form.warna_mobil} onChange={(e) => setForm((f) => ({ ...f, warna_mobil: e.target.value }))} placeholder="Contoh: PUTIH" /></div>
             {editing && (
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <Label className="text-sm">Status Aktif</Label>

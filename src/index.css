@@ -134,3 +134,27 @@
   top: 0;
   z-index: -1;
 }
+
+/* ── Joyride Tour Overrides ───────────────────────────────── */
+button[data-action="primary"] {
+  background-color: #1e3a5f !important;
+  color: #ffffff !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  font-weight: 500 !important;
+}
+
+button[data-action="back"],
+button[data-action="skip"],
+button[data-action="close"] {
+  color: #1e3a5f !important;
+  font-weight: 500 !important;
+}
+
+/* Hide Joyride buttons on transition steps */
+.react-joyride__tooltip:has(.tour-transition-step) button[data-action="primary"],
+.react-joyride__tooltip:has(.tour-transition-step) button[data-action="back"],
+.react-joyride__tooltip:has(.tour-transition-step) button[data-action="skip"],
+.react-joyride__tooltip:has(.tour-transition-step) button[data-action="close"] {
+  display: none !important;
+}

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatRupiah, formatTime, ASSIGNMENT_STATUS } from '@/lib/utils'
@@ -16,6 +16,15 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 
 const BADGE_VARIANT = { pending:'pending', on_progress:'info', selesai:'success', skip:'destructive' }
+
+const SKIP_REASONS = [
+  'Stok koin masih cukup / banyak',
+  'Toko tutup / libur',
+  'Toko menolak tukar koin',
+  'Kondisi jalan / macet parah',
+  'Kendala mesin / armada kasir',
+  'Alasan operasional lainnya'
+]
 
 export default function AppTokoList() {
   const { profile } = useAuth()
@@ -59,7 +68,7 @@ export default function AppTokoList() {
   }
 
   const handleSkip = async () => {
-    if (!alasan.trim()) { toast({ title:'Alasan wajib diisi', variant:'destructive' }); return }
+    if (!alasan) { toast({ title:'Alasan wajib dipilih', variant:'destructive' }); return }
     setSaving(true)
     await supabase.from('toko_assignment').update({ status:'skip', alasan_skip: alasan, updated_at: new Date().toISOString() }).eq('id', skipDialog.id)
     setSaving(false); setSkipDialog(null); setAlasan(''); loadData()
@@ -135,7 +144,21 @@ export default function AppTokoList() {
           <DialogHeader><DialogTitle>Skip Toko</DialogTitle></DialogHeader>
           <div className="py-2 space-y-2">
             <p className="text-sm font-medium">{skipDialog?.toko?.nama_toko}</p>
-            <div className="space-y-1.5"><Label>Alasan Skip *</Label><Textarea value={alasan} onChange={(e) => setAlasan(e.target.value)} placeholder="Masukkan alasan..." rows={3}/></div>
+            <div className="space-y-1.5">
+              <Label htmlFor="alasan-select">Alasan Skip *</Label>
+              <Select value={alasan} onValueChange={setAlasan}>
+                <SelectTrigger id="alasan-select">
+                  <SelectValue placeholder="Pilih alasan skip..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {SKIP_REASONS.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSkipDialog(null)}>Batal</Button>

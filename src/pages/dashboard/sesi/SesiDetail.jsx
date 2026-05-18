@@ -12,10 +12,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, AlertTriangle, Pencil } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle, Loader2, AlertTriangle, Pencil, Download } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { formatRupiah, formatDateTime, formatDate, SESSION_STATUS, ASSIGNMENT_STATUS, DENOM_LIST } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
+import { generateSuratTugasPDF } from '@/lib/pdfHelper'
 
 export default function SesiDetail() {
   const { id }       = useParams()
@@ -32,11 +35,12 @@ export default function SesiDetail() {
   const [editModal, setEditModal] = useState(false)
   const [modalForm, setModalForm] = useState({})
   const [savingModal, setSavingModal] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   const fetchSesi = useCallback(async () => {
     const { data } = await supabase.from('sesi_tugas')
-      .select(`*, kasir:kasir_id(name,nik), driver:driver_id(name), mobil:mobil_id(nopol),
-        modal_koin(*), toko_assignment(*, toko:toko_id(kode_toko,nama_toko)),
+      .select(`*, kasir:kasir_id(name,nik,foto_profil), driver:driver_id(name,nik,foto_profil), mobil:mobil_id(nopol,jenis_kendaraan,warna_mobil),
+        modal_koin(*), toko_assignment(*, toko:toko_id(kode_toko,nama_toko,as,am)),
         transaksi(*, toko:toko_id(kode_toko,nama_toko)),
         rekonsiliasi(*)`)
       .eq('id', id).single()
@@ -243,7 +247,13 @@ export default function SesiDetail() {
               <p className="page-subtitle">{formatDate(sesi?.tanggal)} · {sesi?.kasir?.name}</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {sesi && (
+              <Button variant="outline" disabled={pdfLoading} onClick={() => generateSuratTugasPDF([sesi], setPdfLoading, toast)}>
+                {pdfLoading ? <Loader2 size={16} className="animate-spin mr-1.5" /> : <Download size={16} className="mr-1.5" />}
+                Cetak Surat Tugas
+              </Button>
+            )}
             {canEdit && <Button variant="outline" onClick={() => navigate(`/dashboard/sesi/edit/${id}`)}>Edit Draft</Button>}
             {canEditModal && !editModal && (
               <Button variant="outline" onClick={startEditModal}>
@@ -266,11 +276,12 @@ export default function SesiDetail() {
         </div>
 
         {/* Info cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
             { label: 'Kasir', value: sesi?.kasir?.name },
             { label: 'Driver', value: sesi?.driver?.name },
             { label: 'Kendaraan', value: sesi?.mobil?.nopol },
+            { label: 'Polisi / Pengawal', value: sesi?.nama_polisi },
             { label: 'Total Modal', value: formatRupiah(sesi?.modal_koin?.total_nilai) },
           ].map(({ label, value }) => (
             <Card key={label}><CardContent className="p-4"><p className="stat-label">{label}</p><p className="font-semibold mt-1">{value || '-'}</p></CardContent></Card>
@@ -338,13 +349,14 @@ export default function SesiDetail() {
 
           <TabsContent value="toko">
             <Card><CardContent className="p-0">
-              <Table><TableHeader><TableRow><TableHead>No</TableHead><TableHead>Kode</TableHead><TableHead>Nama</TableHead><TableHead>Status</TableHead><TableHead>Alasan Skip</TableHead></TableRow></TableHeader>
+              <Table><TableHeader><TableRow><TableHead>No</TableHead><TableHead>Kode</TableHead><TableHead>Nama</TableHead><TableHead className="text-right">Alokasi Koin</TableHead><TableHead>Status</TableHead><TableHead>Alasan Skip</TableHead></TableRow></TableHeader>
               <TableBody>
                 {sesi?.toko_assignment?.sort((a,b)=>a.urutan-b.urutan).map((a) => (
                   <TableRow key={a.id}>
                     <TableCell>{a.urutan}</TableCell>
                     <TableCell className="font-mono">{a.toko?.kode_toko}</TableCell>
                     <TableCell>{a.toko?.nama_toko}</TableCell>
+                    <TableCell className="text-right font-medium">{formatRupiah(a.alokasi_koin || 0)}</TableCell>
                     <TableCell><Badge variant={ASSIGNMENT_STATUS[a.status]?.variant||'secondary'}>{ASSIGNMENT_STATUS[a.status]?.icon} {ASSIGNMENT_STATUS[a.status]?.label}</Badge></TableCell>
                     <TableCell className="text-muted-foreground text-sm">{a.alasan_skip || '-'}</TableCell>
                   </TableRow>

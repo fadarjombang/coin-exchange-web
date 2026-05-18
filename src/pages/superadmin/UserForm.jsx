@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Loader2, UserPlus, Pencil } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import imageCompression from 'browser-image-compression'
+import { User, Upload } from 'lucide-react'
 
 export default function UserForm() {
   const { id } = useParams()
@@ -23,7 +25,7 @@ export default function UserForm() {
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(isEdit)
   const [form, setForm] = useState({
-    nik: '', name: '', role: [], is_active: true, password: '', confirmPassword: '',
+    nik: '', name: '', role: [], is_active: true, password: '', confirmPassword: '', foto_profil: '',
   })
   const [errors, setErrors] = useState({})
 
@@ -31,7 +33,7 @@ export default function UserForm() {
     if (!isEdit) return
     const fetch = async () => {
       const { data } = await supabase.from('users').select('*').eq('id', id).single()
-      if (data) setForm((f) => ({ ...f, nik: data.nik, name: data.name, role: data.role, is_active: data.is_active }))
+      if (data) setForm((f) => ({ ...f, nik: data.nik, name: data.name, role: data.role, is_active: data.is_active, foto_profil: data.foto_profil || '' }))
       setFetching(false)
     }
     fetch()
@@ -58,7 +60,7 @@ export default function UserForm() {
       if (isEdit) {
         // Update users table
         const { error } = await supabase.from('users')
-          .update({ name: form.name, role: form.role, is_active: form.is_active })
+          .update({ name: form.name, role: form.role, is_active: form.is_active, foto_profil: form.foto_profil })
           .eq('id', id)
         if (error) throw error
         // Optionally reset password
@@ -74,7 +76,7 @@ export default function UserForm() {
         })
         if (authErr) throw authErr
         const { error: dbErr } = await supabase.from('users')
-          .insert({ id: authData.user.id, nik: form.nik, name: form.name, role: form.role })
+          .insert({ id: authData.user.id, nik: form.nik, name: form.name, role: form.role, foto_profil: form.foto_profil })
         if (dbErr) throw dbErr
         toast({ title: 'Berhasil', description: 'Akun berhasil dibuat', variant: 'success' })
       }
@@ -123,6 +125,46 @@ export default function UserForm() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5" id="user-form">
+              {/* Foto Profil Section */}
+              <div className="flex flex-col items-center gap-3 pb-2">
+                <Label className="text-sm font-medium self-start">Foto Profil (Untuk Surat Tugas)</Label>
+                <div className="relative group w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center overflow-hidden bg-muted">
+                  {form.foto_profil ? (
+                    <img src={form.foto_profil} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-10 h-10 text-muted-foreground/50" />
+                  )}
+                  <label htmlFor="photo-upload" className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    <Upload className="w-5 h-5 text-white" />
+                  </label>
+                  <input
+                    id="photo-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      try {
+                        const options = { maxSizeMB: 0.04, maxWidthOrHeight: 250, useWebWorker: true }
+                        const compressed = await imageCompression(file, options)
+                        const reader = new FileReader()
+                        reader.readAsDataURL(compressed)
+                        reader.onloadend = () => {
+                          setForm(f => ({ ...f, foto_profil: reader.result }))
+                        }
+                      } catch (err) {
+                        toast({ title: 'Gagal kompres foto', description: err.message, variant: 'destructive' })
+                      }
+                    }}
+                  />
+                </div>
+                {form.foto_profil && (
+                  <Button type="button" variant="ghost" size="xs" className="text-xs text-destructive h-7 px-2" onClick={() => setForm(f => ({ ...f, foto_profil: '' }))}>
+                    Hapus Foto
+                  </Button>
+                )}
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="nik">NIK Karyawan *</Label>
                 <Input

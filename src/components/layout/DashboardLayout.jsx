@@ -52,21 +52,21 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
   }
 
   const adminNav = [
-    { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true },
+    { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true, className: 'tour-menu-dashboard' },
     { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
     { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi',     className: 'tour-menu-transaksi' },
-    { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko' },
-    { to: '/dashboard/mobil',       icon: Car,             label: 'Master Mobil' },
+    { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko',   className: 'tour-menu-toko' },
+    { to: '/dashboard/mobil',       icon: Car,             label: 'Master Mobil',  className: 'tour-menu-mobil' },
     { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
-    { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan' },
+    { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan',       className: 'tour-menu-laporan' },
   ]
   const managerNav = [
-    { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true },
+    { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true, className: 'tour-menu-dashboard' },
     { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
     { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi',     className: 'tour-menu-transaksi' },
-    { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko' },
+    { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko',   className: 'tour-menu-toko' },
     { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
-    { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan' },
+    { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan',       className: 'tour-menu-laporan' },
   ]
   const superNav = [
     { to: '/superadmin', icon: Users, label: 'Manajemen Akun' },
