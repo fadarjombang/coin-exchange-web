@@ -54,7 +54,7 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
   const adminNav = [
     { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true },
     { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
-    { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi' },
+    { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi',     className: 'tour-menu-transaksi' },
     { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko' },
     { to: '/dashboard/mobil',       icon: Car,             label: 'Master Mobil' },
     { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
@@ -63,7 +63,7 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
   const managerNav = [
     { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true },
     { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
-    { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi' },
+    { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi',     className: 'tour-menu-transaksi' },
     { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko' },
     { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
     { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan' },
@@ -178,14 +178,16 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
 
           <div className="flex-1" />
 
-          {pendingCount > 0 && (
-            <div className="relative cursor-pointer">
-              <Bell size={20} className="text-slate-500" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                {pendingCount}
-              </span>
-            </div>
-          )}
+          <div className="tour-notif-bell min-w-[24px]">
+            {pendingCount > 0 && (
+              <div className="relative cursor-pointer">
+                <Bell size={20} className="text-slate-500" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  {pendingCount}
+                </span>
+              </div>
+            )}
+          </div>
 
           <div className="tour-header-profile flex items-center gap-2 border-l pl-4 ml-2">
             <div className="w-7 h-7 rounded-full bg-[#1e3a5f] flex items-center justify-center">

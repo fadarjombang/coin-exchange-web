@@ -14,7 +14,8 @@ export default function TourGuide() {
     const roles = Array.isArray(role) ? role : [role]
     let currentRole = 'kasir' // default
     if (roles.includes('superadmin')) currentRole = 'superadmin'
-    else if (roles.includes('admin') || roles.includes('manager')) currentRole = 'dashboard'
+    else if (roles.includes('admin')) currentRole = 'admin'
+    else if (roles.includes('manager')) currentRole = 'manager'
 
     // Check if tour for this role is already completed
     const tourKey = `tour_completed_${currentRole}`
@@ -23,11 +24,11 @@ export default function TourGuide() {
     }
 
     // Set steps based on role
-    if (currentRole === 'dashboard') {
+    if (currentRole === 'admin') {
       setSteps([
         {
           target: 'body',
-          content: 'Selamat datang di Sistem Manajemen Tukar Koin! Mari ikuti tur singkat ini untuk mengenal fitur-fitur yang ada.',
+          content: 'Selamat datang Admin di Sistem Manajemen Tukar Koin! Mari ikuti tur singkat ini.',
           placement: 'center',
           disableBeacon: true,
         },
@@ -37,19 +38,58 @@ export default function TourGuide() {
           placement: 'right',
         },
         {
-          target: '.tour-menu-sesi',
-          content: 'Di menu ini, Anda bisa mengelola sesi tugas kasir, mulai dari membuat sesi (Admin) hingga melakukan approval (Manager).',
+          target: '.tour-menu-stok',
+          content: 'Di menu Stok Gudang, Anda dapat memantau saldo dan melakukan penyesuaian koin/uang secara manual.',
           placement: 'right',
         },
         {
-          target: '.tour-menu-stok',
-          content: 'Pantau ketersediaan stok koin dan uang besar di gudang secara real-time melalui halaman ini.',
+          target: '.tour-menu-sesi',
+          content: 'Di menu Sesi Tugas, Anda bisa membuat sesi tugas baru untuk kasir dan memantau sesi yang sedang berjalan.',
+          placement: 'right',
+        },
+        {
+          target: '.tour-menu-transaksi',
+          content: 'Gunakan menu Transaksi untuk mengecek detail riwayat seluruh transaksi serah terima dari semua toko.',
           placement: 'right',
         },
         {
           target: '.tour-header-profile',
-          content: 'Di sini Anda dapat melihat notifikasi pending dan informasi akun Anda.',
+          content: 'Di sini Anda dapat mengelola profil dan keluar dari aplikasi.',
           placement: 'bottom',
+        }
+      ])
+    } else if (currentRole === 'manager') {
+      setSteps([
+        {
+          target: 'body',
+          content: 'Selamat datang Manager! Berikut adalah panduan singkat fitur-fitur Anda.',
+          placement: 'center',
+          disableBeacon: true,
+        },
+        {
+          target: '.tour-sidebar-nav',
+          content: 'Ini adalah menu navigasi utama Anda.',
+          placement: 'right',
+        },
+        {
+          target: '.tour-notif-bell',
+          content: 'Penting! Ikon lonceng ini menandakan ada sesi tugas baru yang berstatus "Pending Approval". Anda harus menyetujuinya agar kasir dapat memulai tugas.',
+          placement: 'bottom',
+        },
+        {
+          target: '.tour-menu-sesi',
+          content: 'Di menu Sesi Tugas, Anda bisa mengecek sesi aktif dan memberikan approval untuk sesi yang baru dibuat oleh Admin.',
+          placement: 'right',
+        },
+        {
+          target: '.tour-menu-stok',
+          content: 'Pantau ketersediaan mutasi stok koin dan uang besar di gudang secara real-time di sini.',
+          placement: 'right',
+        },
+        {
+          target: '.tour-menu-transaksi',
+          content: 'Gunakan menu ini untuk mengecek histori lengkap transaksi serah terima koin.',
+          placement: 'right',
         }
       ])
     } else if (currentRole === 'kasir') {
@@ -95,7 +135,8 @@ export default function TourGuide() {
       const roles = Array.isArray(role) ? role : [role]
       let currentRole = 'kasir'
       if (roles.includes('superadmin')) currentRole = 'superadmin'
-      else if (roles.includes('admin') || roles.includes('manager')) currentRole = 'dashboard'
+      else if (roles.includes('admin')) currentRole = 'admin'
+      else if (roles.includes('manager')) currentRole = 'manager'
       
       localStorage.setItem(`tour_completed_${currentRole}`, 'true')
     }
