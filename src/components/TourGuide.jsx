@@ -21,7 +21,10 @@ export default function TourGuide() {
     // Kasir has a simple dedicated mobile tour
     if (currentRole === 'kasir') {
       const tourKey = `tour_completed_kasir_${location.pathname}`
-      if (localStorage.getItem(tourKey)) {
+      if (localStorage.getItem(tourKey) === null) {
+        localStorage.setItem(tourKey, 'true')
+      }
+      if (localStorage.getItem(tourKey) === 'true') {
         setRun(false)
         setSteps([])
         return
@@ -67,7 +70,11 @@ export default function TourGuide() {
     // Onboarding Dashboard Flow for Admin & Manager
     const onboardingCompletedKey = `tour_completed_${currentRole}_onboarding`
     
-    // Check if onboarding completed permanently
+    // Check if onboarding completed permanently. Default to true if not set!
+    if (localStorage.getItem(onboardingCompletedKey) === null) {
+      localStorage.setItem(onboardingCompletedKey, 'true')
+    }
+    
     if (localStorage.getItem(onboardingCompletedKey) === 'true') {
       setRun(false)
       setSteps([])
