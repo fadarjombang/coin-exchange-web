@@ -158,12 +158,14 @@ export default function Laporan() {
     URL.revokeObjectURL(url)
   }
 
-  // Count metrics for skip
-  const criticalSkipCount = skipData.filter(s => s.skip_ratio >= 50 && s.total_visits >= 2).length
+  // Count metrics for skip (only stores with at least 1 skip)
+  const skippedStores = skipData.filter(s => s.total_skipped > 0)
+  const criticalSkipCount = skippedStores.filter(s => s.skip_ratio >= 50 && s.total_visits >= 2).length
   const topReasonGlobal = reasonStats[0]?.reason || 'Koin masih banyak'
 
-  // Filter store list by search
+  // Filter store list by search - only show stores with at least 1 skip
   const filteredSkipData = skipData.filter(s => {
+    if (s.total_skipped === 0) return false // only show skipped stores
     if (!searchToko) return true
     const q = searchToko.toLowerCase()
     return s.nama_toko?.toLowerCase().includes(q) || s.kode_toko?.toLowerCase().includes(q) || s.area?.toLowerCase().includes(q)
