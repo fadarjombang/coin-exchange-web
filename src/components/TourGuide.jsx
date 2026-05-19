@@ -190,26 +190,39 @@ export default function TourGuide() {
   }, [role, isAuthenticated, loading, location.pathname])
 
   const handleJoyrideCallback = (data) => {
-    // Log EVERYTHING so we can debug
-    console.log('[TourGuide] callback:', JSON.stringify({
-      status: data.status,
-      action: data.action,
-      type: data.type,
-      index: data.index,
-      path: location.pathname
-    }))
+    const { status, action, type, index, size } = data
 
-    const { status, action } = data
+    // Log EVERYTHING - this is critical for debugging
+    console.log('[TourGuide] CB:', status, action, type, 'step:', index, '/', size, 'path:', location.pathname)
 
-    // Catch EVERY possible tour-ending signal using raw strings only (no constants)
-    if (
-      status === 'finished' ||
-      status === 'skipped' ||
-      action === 'close' ||
-      action === 'skip' ||
-      action === 'reset'
-    ) {
-      console.log('[TourGuide] >>> MARKING AS DONE <<<')
+    // Method 1: Standard finished/skipped detection
+    if (status === 'finished' || status === 'skipped') {
+      console.log('[TourGuide] >>> DONE via status:', status)
+      setRun(false)
+      markTourDone()
+      return
+    }
+
+    // Method 2: Close/skip action detection
+    if (action === 'close' || action === 'skip' || action === 'reset') {
+      console.log('[TourGuide] >>> DONE via action:', action)
+      setRun(false)
+      markTourDone()
+      return
+    }
+
+    // Method 3: Detect user clicking "Selesai" on the LAST step
+    // In continuous mode, clicking "Last" button fires action='next' on the last step
+    if (action === 'next' && type === 'step:after' && index === size - 1) {
+      console.log('[TourGuide] >>> DONE via last step click (index:', index, 'size:', size, ')')
+      setRun(false)
+      markTourDone()
+      return
+    }
+
+    // Method 4: Detect tour:end event type
+    if (type === 'tour:end') {
+      console.log('[TourGuide] >>> DONE via tour:end')
       setRun(false)
       markTourDone()
       return
@@ -227,7 +240,7 @@ export default function TourGuide() {
       scrollToFirstStep
       showProgress
       showSkipButton
-      callback={handleJoyrideCallback}
+      onEvent={handleJoyrideCallback}
       styles={{
         options: {
           primaryColor: '#1e3a5f',
