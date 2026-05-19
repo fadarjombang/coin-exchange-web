@@ -47,14 +47,16 @@ export default function Laporan() {
   const loadSkipAnalysis = useCallback(async () => {
     setLoadingSkip(true)
     try {
-      const { data: assignments } = await supabase.from('toko_assignment')
+      const { data: assignments, error } = await supabase.from('toko_assignment')
         .select('*, toko:toko_id(*), sesi:sesi_tugas_id(tanggal)')
-        .order('created_at', { ascending: false })
+        .order('updated_at', { ascending: false })
 
-      const storeMap = {}
-      const reasonCount = {}
+      if (error) throw error
 
-      assignments.forEach((a) => {
+      const storeMap = {};
+      const reasonCount = {};
+
+      (assignments || []).forEach((a) => {
         if (!a.toko) return
         const storeId = a.toko_id
         if (!storeMap[storeId]) {
