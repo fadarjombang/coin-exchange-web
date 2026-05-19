@@ -32,14 +32,14 @@ export default function Riwayat() {
         {!loading && trx.length > 0 && (
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="p-4 flex justify-between items-center">
-              <div><p className="text-xs text-muted-foreground">Total Koin Keluar</p><p className="text-xl font-bold text-primary">{formatRupiah(total)}</p></div>
-              <div className="text-right"><p className="text-xs text-muted-foreground">Transaksi</p><p className="text-xl font-bold">{trx.length}</p></div>
+              <div><p className="text-xs text-muted-foreground">Total Koin Diserahkan</p><p className="text-xl font-bold text-primary">{formatRupiah(total)}</p></div>
+              <div className="text-right"><p className="text-xs text-muted-foreground">Jumlah Transaksi</p><p className="text-xl font-bold">{trx.length}</p></div>
             </CardContent>
           </Card>
         )}
         {loading ? Array.from({length:5}).map((_,i)=><Skeleton key={i} className="h-20 w-full rounded-xl"/>)
         : trx.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground"><ClipboardList size={40} className="mx-auto mb-3 opacity-30"/><p>Belum ada transaksi hari ini</p></div>
+          <div className="text-center py-16 text-muted-foreground"><ClipboardList size={40} className="mx-auto mb-3 opacity-30"/><p>Belum ada transaksi yang tercatat hari ini</p></div>
         ) : trx.map((t) => (
           <Card key={t.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/app/riwayat/${t.id}`)}>
             <CardContent className="p-4 flex items-center gap-3">

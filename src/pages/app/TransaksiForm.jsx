@@ -22,11 +22,16 @@ const JABATAN_OPTIONS = [
   'Store Junior Leader',
 ]
 
-function SignatureCanvas({ label, padRef, canvasRef, onClear }) {
+function SignatureCanvas({ label, padRef, canvasRef, onClear, onEnd }) {
   useEffect(() => {
     if (!canvasRef.current) return
     const pad = new SignaturePad(canvasRef.current, { backgroundColor: 'rgb(248,250,252)', penColor: '#1e3a5f' })
     padRef.current = pad
+    
+    if (onEnd) {
+      pad.addEventListener('endStroke', onEnd)
+    }
+
     const resize = () => {
       const canvas = canvasRef.current; if (!canvas) return
       const ratio = Math.max(window.devicePixelRatio || 1, 1)
@@ -34,8 +39,11 @@ function SignatureCanvas({ label, padRef, canvasRef, onClear }) {
       canvas.getContext('2d').scale(ratio, ratio); pad.clear()
     }
     resize()
-    return () => pad.off()
-  }, [])
+    return () => {
+      if (onEnd) pad.removeEventListener('endStroke', onEnd)
+      pad.off()
+    }
+  }, [onEnd])
 
   return (
     <div className="space-y-2">
@@ -69,6 +77,9 @@ export default function TransaksiForm() {
   const [uang50, setUang50]         = useState(0)
   const [uang100, setUang100]       = useState(0)
   const [photo, setPhoto]           = useState(null)
+  const [sigUpdate, setSigUpdate]   = useState(0) // State to trigger re-render on signature change
+
+  const triggerSigUpdate = useCallback(() => setSigUpdate(v => v + 1), [])
 
   const ttdPicRef       = useRef(null); const ttdPicCanvas    = useRef(null)
   const ttdKasirRef     = useRef(null); const ttdKasirCanvas  = useRef(null)
@@ -306,9 +317,9 @@ export default function TransaksiForm() {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Tanda Tangan *</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <SignatureCanvas label="Tanda Tangan PIC Toko" padRef={ttdPicRef} canvasRef={ttdPicCanvas} />
+            <SignatureCanvas label="Tanda Tangan PIC Toko" padRef={ttdPicRef} canvasRef={ttdPicCanvas} onEnd={triggerSigUpdate} onClear={triggerSigUpdate} />
             <Separator/>
-            <SignatureCanvas label="Tanda Tangan Kasir" padRef={ttdKasirRef} canvasRef={ttdKasirCanvas} />
+            <SignatureCanvas label="Tanda Tangan Kasir" padRef={ttdKasirRef} canvasRef={ttdKasirCanvas} onEnd={triggerSigUpdate} onClear={triggerSigUpdate} />
           </CardContent>
         </Card>
 

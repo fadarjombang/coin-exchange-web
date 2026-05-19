@@ -99,10 +99,10 @@ export default function Dashboard() {
   useRealtime('sesi_tugas', null, loadData)
 
   const statCards = [
-    { label: 'Stok Gudang',       value: formatRupiah(stats.stokTotal), icon: Package,       color: 'bg-blue-50 text-blue-600', sub: 'Total nilai koin' },
-    { label: 'Sesi Aktif',        value: stats.sesiAktif,              icon: ClipboardList,  color: 'bg-teal-50 text-teal-600', sub: 'Di lapangan sekarang' },
-    { label: 'Transaksi Hari Ini',value: stats.trxHariIni,             icon: TrendingUp,     color: 'bg-emerald-50 text-emerald-600', sub: formatRupiah(stats.trxTotal) },
-    { label: 'Menunggu Approval', value: stats.pending,                icon: Bell,           color: 'bg-amber-50 text-amber-600', sub: 'Perlu tindakan', alert: stats.pending > 0 },
+    { label: 'Saldo Gudang',       value: formatRupiah(stats.stokTotal), icon: Package,       color: 'bg-blue-50 text-blue-600', sub: 'Total nilai aset koin' },
+    { label: 'Sesi Aktif',         value: stats.sesiAktif,              icon: ClipboardList,  color: 'bg-teal-50 text-teal-600', sub: 'Sedang beroperasi di lapangan' },
+    { label: 'Transaksi Hari Ini', value: stats.trxHariIni,             icon: TrendingUp,     color: 'bg-emerald-50 text-emerald-600', sub: formatRupiah(stats.trxTotal) },
+    { label: 'Menunggu Persetujuan', value: stats.pending,              icon: Bell,           color: 'bg-amber-50 text-amber-600', sub: 'Perlu ditinjau segera', alert: stats.pending > 0 },
   ]
 
   return (
@@ -115,7 +115,7 @@ export default function Dashboard() {
           </div>
           <div>
             <h1 className="page-title">Dashboard</h1>
-            <p className="page-subtitle">Monitoring real-time operasi tukar koin</p>
+            <p className="page-subtitle">Pantau seluruh aktivitas operasional penukaran koin secara real-time</p>
           </div>
         </div>
 
@@ -146,7 +146,7 @@ export default function Dashboard() {
             <CardContent className="p-4 flex items-center gap-3 text-red-800">
               <AlertTriangle className="text-red-500 flex-shrink-0 animate-bounce" size={20} />
               <div className="flex-1 text-sm">
-                <strong>Perhatian:</strong> Ada <strong>{selisihTrxCount} transaksi yang selisih hari ini</strong>. Segera periksa detail transaksi lapangan di menu Transaksi.
+                <strong>Perhatian:</strong> Terdapat <strong>{selisihTrxCount} transaksi dengan selisih</strong> pada hari ini. Segera tinjau melalui menu Transaksi Lapangan.
               </div>
               <Button size="sm" variant="destructive" onClick={() => navigate('/dashboard/transaksi')}>
                 Periksa Transaksi
@@ -164,7 +164,7 @@ export default function Dashboard() {
               <Card className="border-amber-200 bg-amber-50/50">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2 text-amber-800">
-                    <Bell size={16} /> {pending.length} Sesi Menunggu Persetujuan
+                    <Bell size={16} /> {pending.length} Sesi Menunggu Persetujuan Anda
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -188,11 +188,11 @@ export default function Dashboard() {
 
             {/* Active sessions realtime */}
             <div>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sesi Aktif (Realtime)</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sesi Aktif di Lapangan</h2>
               {loading ? (
                 <div className="grid gap-4"><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></div>
               ) : sesiAktif.length === 0 ? (
-                <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Tidak ada sesi aktif saat ini</CardContent></Card>
+                <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Belum ada kasir yang beroperasi saat ini</CardContent></Card>
               ) : (
                 <div className="grid gap-4">
                   {sesiAktif.map((s) => {
@@ -244,7 +244,7 @@ export default function Dashboard() {
             <Card className="border-red-200" id="tour-dash-stok-kritis">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2 text-rose-800">
-                  <AlertTriangle className="text-rose-500" size={16} /> Stok Koin Kritis Gudang
+                  <AlertTriangle className="text-rose-500" size={16} /> Peringatan Stok Kritis
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -252,7 +252,7 @@ export default function Dashboard() {
                   Array.from({length:3}).map((_,i) => <Skeleton key={i} className="h-10 w-full" />)
                 ) : stokKritis.length === 0 ? (
                   <div className="flex items-center gap-2 text-emerald-700 text-xs bg-emerald-50 p-3 rounded-lg">
-                    <Info size={14} /> Semua denominasi koin dalam batas aman.
+                    <Info size={14} /> Seluruh denominasi koin berada dalam ambang batas aman.
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -277,14 +277,14 @@ export default function Dashboard() {
             <Card id="tour-dash-distribusi-area">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <BarChart3 size={16} className="text-primary" /> Distribusi Area (Hari Ini)
+                  <BarChart3 size={16} className="text-primary" /> Distribusi Koin per Area Hari Ini
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {loading ? (
                   Array.from({length:3}).map((_,i) => <Skeleton key={i} className="h-10 w-full" />)
                 ) : distribusiArea.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">Belum ada transaksi distribusi hari ini.</p>
+                  <p className="text-xs text-muted-foreground text-center py-4">Belum ada data distribusi koin hari ini</p>
                 ) : (
                   <div className="space-y-3">
                     {distribusiArea.map((item) => {

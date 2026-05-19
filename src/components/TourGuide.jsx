@@ -60,15 +60,15 @@ export default function TourGuide() {
     
     if (location.pathname === '/dashboard') {
       newSteps = [
-        { target: 'body', content: 'Selamat datang di Pusat Kendali Tukar Koin Indomaret! Dasbor analisis baru kini siap memantau operasional Anda 100% secara real-time.', placement: 'center', disableBeacon: true },
-        { target: '.tour-sidebar-nav', content: 'Navigasi Utama: Menu kontrol lengkap Anda untuk mengelola penugasan kasir, mengaudit stok gudang, dan mengunduh rekonsiliasi.', placement: 'right' },
-        { target: '.grid-cols-2', content: 'Rangkuman Metrik Utama: Memantau total kas di gudang, sesi kasir aktif di lapangan, omzet koin keluar hari ini, serta jumlah sesi pending.', placement: 'bottom' },
-        { target: '#tour-dash-stok-kritis', content: 'Peringatan Stok Kritis: Sistem otomatis mendeteksi denominasi koin yang menipis di gudang di bawah batas minimum agar Anda tahu kapan harus mengajukan request drop koin tambahan.', placement: 'left' },
-        { target: '#tour-dash-distribusi-area', content: 'Analisis Distribusi Area: Melacak serapan nominal koin keluar per area wilayah hari ini untuk pemetaan distribusi koin yang optimal.', placement: 'left' },
-        { target: '#tour-dash-operations', content: 'Area Operasional Lapangan: Pantau secara real-time kasir mana saja yang sedang aktif, berapa toko yang sudah mereka selesaikan, serta respon cepat persetujuan sesi.', placement: 'top' },
+        { target: 'body', content: 'Selamat datang di Dashboard Pusat Kendali Tukar Koin. Seluruh metrik operasional tersaji secara real-time di halaman ini.', placement: 'center', disableBeacon: true },
+        { target: '.tour-sidebar-nav', content: 'Panel Navigasi: Akses seluruh modul pengelolaan — mulai dari penugasan kasir, pemantauan stok, hingga laporan analisis.', placement: 'right' },
+        { target: '.grid-cols-2', content: 'Ringkasan Metrik Utama: Menampilkan saldo gudang, jumlah sesi aktif, volume transaksi hari ini, serta sesi yang menunggu persetujuan.', placement: 'bottom' },
+        { target: '#tour-dash-stok-kritis', content: 'Peringatan Stok Kritis: Sistem secara otomatis mendeteksi denominasi koin yang berada di bawah ambang batas minimum persediaan.', placement: 'left' },
+        { target: '#tour-dash-distribusi-area', content: 'Distribusi Koin per Area: Menampilkan sebaran volume penukaran koin berdasarkan wilayah untuk mendukung perencanaan distribusi yang optimal.', placement: 'left' },
+        { target: '#tour-dash-operations', content: 'Panel Operasional: Pantau progres kasir yang sedang bertugas di lapangan secara langsung, termasuk jumlah toko yang telah dikunjungi.', placement: 'top' },
         {
           target: '.tour-menu-stok',
-          content: <div className="tour-transition-step">Luar biasa! Sekarang silakan klik menu navigasi Stok Gudang di sini untuk melanjutkan panduan.</div>,
+          content: <div className="tour-transition-step">Selanjutnya, klik menu <strong>Stok Gudang</strong> di samping untuk melanjutkan panduan.</div>,
           placement: 'right',
           styles: {
             buttonNext: { display: 'none' },
@@ -81,13 +81,13 @@ export default function TourGuide() {
       ]
     } else if (location.pathname === '/dashboard/stok') {
       newSteps = [
-        { target: 'body', content: 'Halaman Stok Gudang', placement: 'center', disableBeacon: true },
-        { target: '#stok-total-cards', content: 'Ini adalah ringkasan total ketersediaan koin and uang besar di brankas secara realtime.', placement: 'bottom' },
-        { target: '#tour-stok-log', content: 'Tabel ini merekam semua riwayat perubahan stok koin/uang secara otomatis baik dari transaksi kasir maupun manual untuk transparansi saldo.', placement: 'top' },
-        { target: '#btn-penyesuaian', content: 'Klik tombol ini untuk melakukan Penyesuaian Manual stok tanpa melalui form transaksi serah terima.', placement: 'left' },
+        { target: 'body', content: 'Halaman Stok Gudang menampilkan saldo persediaan koin dan uang kertas secara real-time.', placement: 'center', disableBeacon: true },
+        { target: '#stok-total-cards', content: 'Ringkasan nilai total aset koin dan uang kertas yang tersedia di gudang saat ini.', placement: 'bottom' },
+        { target: '#tour-stok-log', content: 'Riwayat Mutasi: Merekam seluruh perubahan saldo stok — baik dari transaksi lapangan maupun penyesuaian manual — untuk memastikan transparansi.', placement: 'top' },
+        { target: '#btn-penyesuaian', content: 'Penyesuaian Manual: Gunakan fitur ini untuk mengoreksi saldo stok di luar alur transaksi standar (hanya tersedia untuk Admin).', placement: 'left' },
         {
           target: '.tour-menu-sesi',
-          content: <div className="tour-transition-step">Bagus! Sekarang silakan klik menu navigasi Sesi Tugas untuk melanjutkan panduan.</div>,
+          content: <div className="tour-transition-step">Selanjutnya, klik menu <strong>Sesi Tugas</strong> untuk melanjutkan panduan.</div>,
           placement: 'right',
           styles: {
             buttonNext: { display: 'none' },
@@ -100,14 +100,14 @@ export default function TourGuide() {
       ]
     } else if (location.pathname === '/dashboard/sesi') {
       newSteps = [
-        { target: 'body', content: 'Halaman ini adalah pusat kendali Sesi Tugas kasir lapangan Anda.', placement: 'center', disableBeacon: true },
-        { target: '#tour-sesi-filters', content: 'Anda dapat menyaring data menggunakan tombol status ini. "Aktif" untuk sesi yang sedang berjalan di lapangan, "Menunggu Approval" untuk yang belum disetujui Manager, dll.', placement: 'bottom' },
-        { target: '#tour-sesi-search', content: 'Gunakan kolom pencarian ini untuk mencari sesi berdasarkan nama kasir atau plat nomor mobil dengan cepat.', placement: 'bottom' },
-        { target: 'table', content: 'Di tabel ini, setiap sesi akan ditampilkan secara real-time. Klik pada salah satu baris untuk melihat detail lengkap sesi tersebut.', placement: 'top' },
-        { target: '#buat-sesi-btn', content: 'Tombol Buat Sesi: Klik di sini jika Anda ingin masuk ke formulir pembuatan sesi penugasan kasir baru (hanya tersedia untuk peran Admin).', placement: 'left' },
+        { target: 'body', content: 'Halaman Sesi Tugas merupakan pusat pengelolaan penugasan kasir ke lapangan.', placement: 'center', disableBeacon: true },
+        { target: '#tour-sesi-filters', content: 'Filter Status: Saring data berdasarkan status sesi — "Aktif" untuk sesi yang sedang berjalan, "Menunggu Persetujuan" untuk yang memerlukan konfirmasi Manager.', placement: 'bottom' },
+        { target: '#tour-sesi-search', content: 'Pencarian Cepat: Temukan sesi spesifik berdasarkan nama kasir atau nomor polisi kendaraan.', placement: 'bottom' },
+        { target: 'table', content: 'Tabel sesi menampilkan seluruh data penugasan. Klik salah satu baris untuk melihat rincian lengkap sesi tersebut.', placement: 'top' },
+        { target: '#buat-sesi-btn', content: 'Buat Sesi Baru: Formulir pembuatan penugasan kasir baru — fitur ini hanya tersedia untuk peran Admin.', placement: 'left' },
         {
           target: '.tour-menu-transaksi',
-          content: <div className="tour-transition-step">Hebat! Sekarang silakan klik menu navigasi Transaksi di sini untuk melanjutkan panduan.</div>,
+          content: <div className="tour-transition-step">Selanjutnya, klik menu <strong>Transaksi Lapangan</strong> untuk melanjutkan panduan.</div>,
           placement: 'right',
           styles: {
             buttonNext: { display: 'none' },
@@ -120,17 +120,35 @@ export default function TourGuide() {
       ]
     } else if (location.pathname === '/dashboard/transaksi') {
       newSteps = [
-        { target: 'body', content: 'Selamat datang di Halaman Transaksi. Di sini Anda dapat melihat semua log transaksi serah terima koin di lapangan.', placement: 'center', disableBeacon: true },
-        { target: '#tour-trx-summary', content: 'Rangkuman statistik transaksi, meliputi total nilai koin yang dilepaskan, total uang tunai besar yang masuk, dan jumlah transaksi yang mengalami selisih saldo.', placement: 'bottom' },
-        { target: '#tour-trx-filters', content: 'Gunakan panel filter ini untuk membatasi data berdasarkan rentang tanggal dari-sampai.', placement: 'bottom' },
-        { target: '#tour-trx-area-select', content: 'Filter Area: Anda dapat mem-filter data secara cepat berdasarkan Area Toko (seperti Ploso, Jombang, Peterongan, dll) untuk mempermudah analisis kebutuhan koin per area.', placement: 'bottom' },
-        { target: '#tour-trx-search', content: 'Anda juga bisa langsung mencari data transaksi dengan mengetikkan nama kasir, nama toko, atau kode toko di kolom ini.', placement: 'bottom' },
-        { target: '#btn-terapkan-filter', content: 'Setelah mengatur filter, klik tombol Terapkan untuk memperbarui tampilan tabel.', placement: 'top' },
-        { target: '#tour-trx-table', content: 'Tabel detail transaksi. Anda dapat memverifikasi nominal koin, nominal uang besar, status selisih, dan nama penanggung jawab (PIC) toko di sini.', placement: 'top' },
-        { target: '#btn-export-csv', content: 'Terakhir, Anda dapat mengunduh seluruh data transaksi yang ter-filter ke dalam file CSV (Excel) dengan klik tombol ini.', placement: 'left' },
+        { target: 'body', content: 'Halaman Transaksi Lapangan menampilkan seluruh rekap penukaran koin yang dilakukan kasir di setiap toko.', placement: 'center', disableBeacon: true },
+        { target: '#tour-trx-summary', content: 'Ringkasan Statistik: Total nilai koin yang diserahkan, uang kertas yang diterima, dan jumlah transaksi yang mengalami selisih saldo.', placement: 'bottom' },
+        { target: '#tour-trx-filters', content: 'Panel Filter: Batasi tampilan data berdasarkan rentang tanggal untuk analisis periode tertentu.', placement: 'bottom' },
+        { target: '#tour-trx-area-select', content: 'Filter Area: Saring data berdasarkan wilayah toko untuk menganalisis kebutuhan koin per area.', placement: 'bottom' },
+        { target: '#tour-trx-search', content: 'Pencarian: Temukan transaksi tertentu dengan mengetikkan nama kasir, nama toko, atau kode toko.', placement: 'bottom' },
+        { target: '#btn-terapkan-filter', content: 'Klik tombol Terapkan setelah mengatur filter untuk memperbarui tampilan data.', placement: 'top' },
+        { target: '#tour-trx-table', content: 'Tabel Transaksi: Verifikasi detail nominal koin, uang kertas, status selisih, dan penanggung jawab (PIC) di setiap toko.', placement: 'top' },
+        { target: '#btn-export-csv', content: 'Ekspor Data: Unduh seluruh data transaksi yang ter-filter ke dalam file CSV untuk keperluan pelaporan.', placement: 'left' },
+        {
+          target: '.tour-menu-kantor',
+          content: <div className="tour-transition-step">Selanjutnya, klik menu <strong>Transaksi Kantor</strong> untuk melihat rekapan penukaran internal.</div>,
+          placement: 'right',
+          styles: {
+            buttonNext: { display: 'none' },
+            buttonBack: { display: 'none' },
+            buttonClose: { display: 'none' }
+          },
+          spotlightClicks: true,
+          showSkipButton: false
+        }
+      ]
+    } else if (location.pathname === '/dashboard/kantor') {
+      newSteps = [
+        { target: 'body', content: 'Halaman Penukaran Kantor merekam seluruh transaksi penukaran koin oleh toko yang datang langsung ke kantor cabang.', placement: 'center', disableBeacon: true },
+        { target: '.grid-cols-3', content: 'Ringkasan total transaksi kantor pada periode terpilih — meliputi jumlah koin yang diserahkan dan uang kertas yang diterima.', placement: 'bottom' },
+        { target: 'table', content: 'Tabel riwayat ini terpisah dari transaksi lapangan untuk memastikan kejelasan rekonsiliasi masing-masing jalur operasional.', placement: 'top' },
         {
           target: '.tour-menu-laporan',
-          content: <div className="tour-transition-step">Hampir selesai! Sekarang silakan klik menu navigasi Laporan di sini untuk melihat analisis optimasi rute.</div>,
+          content: <div className="tour-transition-step">Langkah terakhir — klik menu <strong>Laporan</strong> untuk melihat analisis optimasi rute kunjungan.</div>,
           placement: 'right',
           styles: {
             buttonNext: { display: 'none' },
@@ -143,15 +161,15 @@ export default function TourGuide() {
       ]
     } else if (location.pathname === '/dashboard/laporan') {
       newSteps = [
-        { target: 'body', content: 'Selamat datang di Analisis Laporan & Optimasi Kunjungan! Kami menyusun fitur cerdas ini untuk membantu Anda mengefisienkan rute harian.', placement: 'center', disableBeacon: true },
-        { target: '#tour-report-intro', content: 'Metodologi Analisis: Sistem melacak toko yang dilewati (skip) oleh kasir dengan alasan koin masih banyak. Ini membantu menyaring toko yang memiliki koin cukup mandiri.', placement: 'bottom' },
-        { target: '#tour-report-metrics', content: 'Metrik Analisis: Pantau jumlah toko yang disarankan diturunkan prioritas rutenya, penyebab skip teratas, dan akumulasi riwayat skip.', placement: 'bottom' },
-        { target: '#tour-report-skipped-list', content: 'Daftar Analisis Skip Toko: Menampilkan rasio skip toko. Jika >= 50% (berwarna merah), sistem menyarankan "Turunkan Prioritas" rute kunjungan agar bensin dan waktu tim lebih hemat.', placement: 'top' },
-        { target: '#tour-report-reasons', content: 'Penyebab Skip Utama: Distribusi alasan skip yang diinput kasir untuk mendeteksi tren operasional.', placement: 'top' },
-        { target: '#btn-export-rekomendasi', content: 'Ekspor Rekomendasi CSV: Klik tombol ini untuk mengunduh daftar toko prioritas rendah ke file CSV (Excel) untuk acuan penyusunan rute berikutnya.', placement: 'left' },
+        { target: 'body', content: 'Halaman Laporan & Analisis menyajikan insight berbasis data untuk mendukung pengambilan keputusan operasional Anda.', placement: 'center', disableBeacon: true },
+        { target: '#tour-report-intro', content: 'Metodologi: Sistem menganalisis pola kunjungan kasir yang dilewati (skip) untuk mengidentifikasi toko dengan persediaan koin mandiri yang memadai.', placement: 'bottom' },
+        { target: '#tour-report-metrics', content: 'Metrik Analisis: Jumlah toko yang direkomendasikan untuk turun prioritas, alasan skip terbanyak, dan akumulasi total kunjungan yang dilewati.', placement: 'bottom' },
+        { target: '#tour-report-skipped-list', content: 'Tabel Analisis per Toko: Menampilkan rasio kunjungan yang dilewati. Toko dengan rasio ≥ 50% (ditandai merah) direkomendasikan untuk diturunkan prioritasnya.', placement: 'top' },
+        { target: '#tour-report-reasons', content: 'Distribusi Alasan: Pemetaan alasan yang dilaporkan kasir saat melewati toko, untuk mendeteksi pola operasional secara keseluruhan.', placement: 'top' },
+        { target: '#btn-export-rekomendasi', content: 'Ekspor Rekomendasi: Unduh daftar toko prioritas rendah ke file CSV sebagai acuan penyusunan rute kunjungan berikutnya.', placement: 'left' },
         {
           target: 'body',
-          content: 'Luar biasa! Anda telah menyelesaikan panduan interaktif seluruh fitur utama Dashboard Tukar Koin Indomaret Jombang. Selamat bekerja!',
+          content: 'Anda telah menyelesaikan seluruh panduan interaktif Dashboard Tukar Koin Indomaret. Selamat bekerja dan semoga produktif!',
           placement: 'center'
         }
       ]

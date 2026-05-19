@@ -18,11 +18,11 @@ import { useToast } from '@/hooks/use-toast'
 const BADGE_VARIANT = { pending:'pending', on_progress:'info', selesai:'success', skip:'destructive' }
 
 const SKIP_REASONS = [
-  'Stok koin masih cukup / banyak',
-  'Toko tutup / libur',
-  'Toko menolak tukar koin',
-  'Kondisi jalan / macet parah',
-  'Kendala mesin / armada kasir',
+  'Stok koin toko masih mencukupi',
+  'Toko sedang tutup atau libur',
+  'Toko menolak penukaran koin',
+  'Kendala akses jalan atau kemacetan',
+  'Kendala kendaraan operasional',
   'Alasan operasional lainnya'
 ]
 
@@ -99,7 +99,7 @@ export default function AppTokoList() {
         : filtered.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <Store size={40} className="mx-auto mb-3 opacity-30" />
-            <p>{assigns.length === 0 ? 'Tidak ada sesi aktif' : 'Toko tidak ditemukan'}</p>
+            <p>{assigns.length === 0 ? 'Belum ada sesi aktif saat ini' : 'Toko tidak ditemukan'}</p>
           </div>
         ) : filtered.map((a) => {
           const trx = a.transaksi
@@ -141,14 +141,14 @@ export default function AppTokoList() {
       </div>
       <Dialog open={!!skipDialog} onOpenChange={(o) => !o && setSkipDialog(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Skip Toko</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Lewati Kunjungan Toko</DialogTitle></DialogHeader>
           <div className="py-2 space-y-2">
             <p className="text-sm font-medium">{skipDialog?.toko?.nama_toko}</p>
             <div className="space-y-1.5">
-              <Label htmlFor="alasan-select">Alasan Skip *</Label>
+              <Label htmlFor="alasan-select">Alasan Melewati Toko *</Label>
               <Select value={alasan} onValueChange={setAlasan}>
                 <SelectTrigger id="alasan-select">
-                  <SelectValue placeholder="Pilih alasan skip..." />
+                  <SelectValue placeholder="Pilih alasan melewati toko..." />
                 </SelectTrigger>
                 <SelectContent>
                   {SKIP_REASONS.map((r) => (
@@ -162,7 +162,7 @@ export default function AppTokoList() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSkipDialog(null)}>Batal</Button>
-            <Button variant="destructive" onClick={handleSkip} disabled={saving}>{saving && <Loader2 size={14} className="animate-spin mr-1"/>}Skip Toko</Button>
+            <Button variant="destructive" onClick={handleSkip} disabled={saving}>{saving && <Loader2 size={14} className="animate-spin mr-1"/>}Lewati Toko</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

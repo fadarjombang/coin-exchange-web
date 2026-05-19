@@ -187,8 +187,8 @@ export default function Laporan() {
               <BarChart3 size={20} className="text-primary" />
             </div>
             <div>
-              <h1 className="page-title">Analisis Laporan</h1>
-              <p className="page-subtitle">Optimasi penugasan dan intelijen operasi koin</p>
+              <h1 className="page-title">Laporan & Analisis</h1>
+              <p className="page-subtitle">Evaluasi efisiensi operasional dan optimasi rute kunjungan</p>
             </div>
           </div>
           {activeTab === 'optimasi' && (
@@ -205,8 +205,8 @@ export default function Laporan() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="optimasi">Optimasi Prioritas Kunjungan</TabsTrigger>
-            <TabsTrigger value="harian">Rekap Harian</TabsTrigger>
+            <TabsTrigger value="optimasi">Optimasi Rute Kunjungan</TabsTrigger>
+            <TabsTrigger value="harian">Rekap Operasional Harian</TabsTrigger>
           </TabsList>
 
           {/* TAB 1: OPTIMASI PRIORITAS KUNJUNGAN (SKIP ANALYSIS) */}
@@ -217,11 +217,11 @@ export default function Laporan() {
               <CardContent className="p-4 flex items-start gap-3">
                 <Info className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
                 <div className="space-y-1 text-sm text-amber-900">
-                  <h4 className="font-semibold">Cara Kerja Optimasi Kunjungan</h4>
+                  <h4 className="font-semibold">Metodologi Analisis Kunjungan</h4>
                   <p className="text-xs text-amber-800 leading-relaxed">
-                    Sistem ini melacak riwayat penugasan kasir yang <strong>dilewati (dilewati/skip)</strong> di setiap toko.
-                    Toko dengan rasio skip tinggi (&gt;= 50%) menunjukkan bahwa toko tersebut <strong>memiliki persediaan koin mandiri yang melimpah</strong> (stok koin selalu cukup),
-                    sehingga <strong>tidak mendesak</strong> untuk dikunjungi. Kami menyarankan untuk <strong>menurunkan prioritas kunjungan</strong> toko-toko ini untuk efisiensi BBM dan waktu tim operasional.
+                    Sistem menganalisis riwayat kunjungan kasir yang <strong>dilewati (skip)</strong> pada setiap toko.
+                    Toko dengan rasio skip tinggi (&gt;= 50%) mengindikasikan bahwa toko tersebut <strong>memiliki persediaan koin yang masih memadai</strong>,
+                    sehingga <strong>tidak memerlukan kunjungan rutin</strong>. Rekomendasi: <strong>turunkan prioritas kunjungan</strong> untuk efisiensi waktu dan biaya operasional.
                   </p>
                 </div>
               </CardContent>
@@ -232,7 +232,7 @@ export default function Laporan() {
               <Card>
                 <CardContent className="p-5 flex items-center justify-between">
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Toko Disarankan Turun Prioritas</p>
+                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Rekomendasi Turun Prioritas</p>
                     <p className="text-2xl font-bold text-rose-600">{loadingSkip ? '...' : criticalSkipCount}</p>
                     <p className="text-[10px] text-muted-foreground">Toko dengan rasio skip &gt;= 50%</p>
                   </div>
@@ -245,11 +245,11 @@ export default function Laporan() {
               <Card>
                 <CardContent className="p-5 flex items-center justify-between">
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Penyebab Skip Utama</p>
+                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Alasan Skip Terbanyak</p>
                     <p className="text-lg font-bold text-foreground break-words" title={topReasonGlobal}>
                       {loadingSkip ? '...' : topReasonGlobal}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">Alasan paling sering diinput kasir</p>
+                    <p className="text-[10px] text-muted-foreground">Alasan paling sering dilaporkan kasir</p>
                   </div>
                   <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center text-amber-500">
                     <AlertTriangle size={24} />
@@ -260,11 +260,11 @@ export default function Laporan() {
               <Card>
                 <CardContent className="p-5 flex items-center justify-between">
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Total Riwayat Skip Toko</p>
+                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Akumulasi Riwayat Skip</p>
                     <p className="text-2xl font-bold text-primary">
                       {loadingSkip ? '...' : reasonStats.reduce((acc, r) => acc + r.count, 0)}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">Total kejadian skip tercatat di sistem</p>
+                    <p className="text-[10px] text-muted-foreground">Total kejadian kunjungan dilewati</p>
                   </div>
                   <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">
                     <BarChart3 size={24} />
@@ -282,8 +282,8 @@ export default function Laporan() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-base">Daftar Analisis Skip Toko</CardTitle>
-                        <CardDescription>Rasio skip dihitung dari perbandingan jumlah kunjungan dilewati vs total penugasan sesi</CardDescription>
+                        <CardTitle className="text-base">Analisis Skip per Toko</CardTitle>
+                        <CardDescription>Perbandingan jumlah kunjungan dilewati terhadap total penugasan</CardDescription>
                       </div>
                       <div className="relative">
                         <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -317,7 +317,7 @@ export default function Laporan() {
                         ) : filteredSkipData.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={5} className="py-12 text-center text-muted-foreground text-sm">
-                              {searchToko ? `Tidak ada toko yang matches "${searchToko}"` : 'Tidak ada riwayat skip toko tercatat.'}
+                              {searchToko ? `Tidak ditemukan toko yang cocok dengan "${searchToko}"` : 'Belum ada riwayat kunjungan yang dilewati'}
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -399,14 +399,14 @@ export default function Laporan() {
               <div className="space-y-6">
                 <Card id="tour-report-reasons">
                   <CardHeader>
-                    <CardTitle className="text-base">Penyebab Kunjungan Dilewati</CardTitle>
-                    <CardDescription>Pola alasan teratas yang diinput oleh kasir saat melepaskan rute toko</CardDescription>
+                    <CardTitle className="text-base">Alasan Kunjungan Dilewati</CardTitle>
+                    <CardDescription>Distribusi alasan yang dilaporkan kasir saat melewati toko</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {loadingSkip ? (
                       Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-12 w-full bg-slate-100 rounded-lg animate-pulse" />)
                     ) : reasonStats.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-6">Belum ada rincian alasan skip.</p>
+                      <p className="text-xs text-muted-foreground text-center py-6">Belum ada data alasan kunjungan dilewati</p>
                     ) : (
                       <div className="space-y-3">
                         {reasonStats.map((item) => {
@@ -439,8 +439,8 @@ export default function Laporan() {
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {[
                   { label: 'Total Sesi', value: data.length },
-                  { label: 'Total Koin Keluar', value: formatRupiah(data.flatMap(s=>s.transaksi||[]).reduce((a,t)=>a+(t.total_koin_nilai||0),0)) },
-                  { label: 'Total Uang Masuk', value: formatRupiah(data.flatMap(s=>s.transaksi||[]).reduce((a,t)=>a+(t.total_uang_diterima||0),0)) },
+                  { label: 'Koin Diserahkan', value: formatRupiah(data.flatMap(s=>s.transaksi||[]).reduce((a,t)=>a+(t.total_koin_nilai||0),0)) },
+                  { label: 'Uang Diterima', value: formatRupiah(data.flatMap(s=>s.transaksi||[]).reduce((a,t)=>a+(t.total_uang_diterima||0),0)) },
                 ].map(({label,value})=><Card key={label}><CardContent className="p-4"><p className="stat-label">{label}</p><p className="stat-value text-lg">{value}</p></CardContent></Card>)}
               </div>
             )}
@@ -448,7 +448,7 @@ export default function Laporan() {
               <Table><TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Kasir</TableHead><TableHead>Toko Dikunjungi</TableHead><TableHead>Total Koin</TableHead><TableHead>Total Uang</TableHead></TableRow></TableHeader>
               <TableBody>
                 {loading ? <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-                : data.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Pilih rentang tanggal dan klik Tampilkan</TableCell></TableRow>
+                : data.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Tentukan rentang tanggal dan klik Tampilkan untuk melihat data</TableCell></TableRow>
                 : data.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell>{formatDate(s.tanggal)}</TableCell>

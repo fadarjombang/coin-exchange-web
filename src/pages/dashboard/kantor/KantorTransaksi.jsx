@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +12,10 @@ import { Loader2, Plus, Building, Coins, Banknote, Search } from 'lucide-react'
 import { formatRupiah, formatDateTime } from '@/lib/utils'
 
 export default function KantorTransaksi() {
+  const { role } = useAuth()
+  const roles = Array.isArray(role) ? role : [role]
+  const isAdmin = roles.includes('admin') || roles.includes('superadmin')
+
   const navigate = useNavigate()
   const today = new Date().toISOString().split('T')[0]
   const [from, setFrom] = useState(today)
@@ -53,13 +58,15 @@ export default function KantorTransaksi() {
               <Building size={20} className="text-primary" />
             </div>
             <div>
-              <h1 className="page-title">Transaksi Kantor</h1>
-              <p className="page-subtitle">Penukaran koin toko yang datang langsung ke kantor</p>
+              <h1 className="page-title">Penukaran Koin Kantor</h1>
+              <p className="page-subtitle">Riwayat penukaran koin oleh tim toko yang datang ke kantor</p>
             </div>
           </div>
-          <Button onClick={() => navigate('/dashboard/kantor/baru')}>
-            <Plus size={16} className="mr-1.5" /> Transaksi Baru
-          </Button>
+          {isAdmin && (
+            <Button onClick={() => navigate('/dashboard/kantor/baru')}>
+              <Plus size={16} className="mr-1.5" /> Transaksi Baru
+            </Button>
+          )}
         </div>
 
         {/* Summary */}
@@ -79,7 +86,7 @@ export default function KantorTransaksi() {
           <Card>
             <CardContent className="p-5 flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground font-semibold uppercase">Total Koin Keluar</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase">Total Koin Diserahkan</p>
                 <p className="text-xl font-bold text-amber-600">{loading ? '...' : formatRupiah(totalKoin)}</p>
                 <p className="text-[10px] text-muted-foreground">Diserahkan ke toko</p>
               </div>
@@ -91,7 +98,7 @@ export default function KantorTransaksi() {
           <Card>
             <CardContent className="p-5 flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground font-semibold uppercase">Total Uang Masuk</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase">Total Uang Diterima</p>
                 <p className="text-xl font-bold text-green-600">{loading ? '...' : formatRupiah(totalUang)}</p>
                 <p className="text-[10px] text-muted-foreground">Diterima dari toko</p>
               </div>
@@ -144,8 +151,8 @@ export default function KantorTransaksi() {
                   <TableHead>Kode Toko</TableHead>
                   <TableHead>Nama Toko</TableHead>
                   <TableHead>Area</TableHead>
-                  <TableHead className="text-right">Koin Keluar</TableHead>
-                  <TableHead className="text-right">Uang Masuk</TableHead>
+                  <TableHead className="text-right">Koin Diserahkan</TableHead>
+                  <TableHead className="text-right">Uang Diterima</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

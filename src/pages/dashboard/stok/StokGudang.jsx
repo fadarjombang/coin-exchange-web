@@ -99,7 +99,7 @@ export default function StokGudang() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Package size={20} className="text-primary" /></div>
-            <div><h1 className="page-title">Stok Gudang</h1><p className="page-subtitle">Nilai uang & koin yang tersedia di gudang</p></div>
+            <div><h1 className="page-title">Stok Gudang</h1><p className="page-subtitle">Saldo persediaan koin dan uang kertas di gudang</p></div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={fetchData}><RefreshCw size={14} /></Button>

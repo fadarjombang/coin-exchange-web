@@ -59,14 +59,14 @@ export default function AppHome() {
             <CardContent className="py-12 text-center">
               <ClipboardList size={40} className="mx-auto text-muted-foreground/40 mb-3" />
               <p className="font-medium text-muted-foreground">Belum ada sesi tugas aktif</p>
-              <p className="text-sm text-muted-foreground mt-1">Menunggu assignment dari admin</p>
+              <p className="text-sm text-muted-foreground mt-1">Sesi akan tersedia setelah Admin membuat penugasan untuk Anda</p>
             </CardContent>
           </Card>
         ) : sesi.status === 'pending_approval' ? (
           <Card className="border-amber-200 bg-amber-50">
             <CardContent className="p-5 text-center">
               <Badge variant="warning" className="mb-3">Menunggu Persetujuan</Badge>
-              <p className="text-sm text-amber-800">Sesi tugas Anda sedang menunggu persetujuan Manager sebelum dapat dimulai.</p>
+              <p className="text-sm text-amber-800">Sesi tugas Anda sedang dalam proses persetujuan Manager. Harap menunggu konfirmasi sebelum memulai operasi.</p>
             </CardContent>
           </Card>
         ) : (
@@ -84,11 +84,11 @@ export default function AppHome() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-white/10 rounded-lg p-3">
-                    <p className="text-blue-200 text-xs">Sisa Koin</p>
+                    <p className="text-blue-200 text-xs">Koin Tersisa</p>
                     <p className="font-bold">{formatRupiah(sisaKoin)}</p>
                   </div>
                   <div className="bg-white/10 rounded-lg p-3">
-                    <p className="text-blue-200 text-xs">Koin Keluar</p>
+                    <p className="text-blue-200 text-xs">Koin Diserahkan</p>
                     <p className="font-bold">{formatRupiah(trxSum.total)}</p>
                   </div>
                 </div>

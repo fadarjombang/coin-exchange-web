@@ -125,8 +125,8 @@ export default function KantorTransaksiBaru() {
             <ArrowLeft size={18} />
           </Button>
           <div>
-            <h1 className="page-title">Transaksi Baru — Kantor</h1>
-            <p className="page-subtitle">Toko menyerahkan uang besar, admin menyerahkan koin</p>
+            <h1 className="page-title">Penukaran Koin di Kantor</h1>
+            <p className="page-subtitle">Catat penerimaan uang kertas dan penyerahan koin ke toko</p>
           </div>
         </div>
 
@@ -138,10 +138,10 @@ export default function KantorTransaksiBaru() {
               <span className="text-sm font-semibold">Stok Gudang Saat Ini</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {DENOM_LIST.slice(0, 4).map(d => (
+              {DENOM_LIST.map(d => (
                 <div key={d.key} className="text-center p-2 bg-background rounded border">
                   <p className="text-[10px] text-muted-foreground">{d.label}</p>
-                  <p className="font-bold text-sm">{formatRupiah(stok?.[d.key] || 0)}</p>
+                  <p className="font-bold text-xs">{formatRupiah(stok?.[d.key] || 0)}</p>
                 </div>
               ))}
             </div>
@@ -150,8 +150,8 @@ export default function KantorTransaksiBaru() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Form Transaksi</CardTitle>
-            <CardDescription>Pilih toko, isi koin yang diserahkan dan uang yang diterima</CardDescription>
+            <CardTitle>Data Penukaran</CardTitle>
+            <CardDescription>Lengkapi rincian nominal penukaran untuk mencatat mutasi stok gudang.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Pilih Toko */}
@@ -199,7 +199,7 @@ export default function KantorTransaksiBaru() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Coins size={16} className="text-amber-600" />
-                <Label className="font-semibold">Koin yang Diberikan ke Toko (Stok Berkurang)</Label>
+                <Label className="font-semibold">Koin yang Diserahkan ke Toko</Label>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {DENOM_LIST.map(d => (
@@ -230,7 +230,7 @@ export default function KantorTransaksiBaru() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Banknote size={16} className="text-green-600" />
-                <Label className="font-semibold">Uang yang Diterima dari Toko (Stok Bertambah)</Label>
+                <Label className="font-semibold">Uang Kertas yang Diterima dari Toko</Label>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {[
@@ -260,11 +260,11 @@ export default function KantorTransaksiBaru() {
             {/* Summary */}
             <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg border">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Total Koin Keluar</p>
+                <p className="text-sm text-muted-foreground">Total Koin Diserahkan</p>
                 <p className="text-xl font-bold text-amber-600">{formatRupiah(totalKoin)}</p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Total Uang Masuk</p>
+                <p className="text-sm text-muted-foreground">Total Uang Diterima</p>
                 <p className="text-xl font-bold text-green-600">{formatRupiah(totalUang)}</p>
               </div>
             </div>
@@ -285,10 +285,10 @@ export default function KantorTransaksiBaru() {
           <CardContent className="p-4 flex items-start gap-3">
             <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-amber-900">
-              <p className="font-semibold">Cara Kerja</p>
-              <p className="text-xs mt-1">
-                Admin menerima uang besar dari toko, lalu menyerahkan koin ke toko.
-                Stok gudang otomatis berkurang untuk koin yang diberikan, dan bertambah untuk uang yang diterima.
+              <p className="font-semibold">Panduan Penukaran</p>
+              <p className="text-xs mt-1 leading-relaxed">
+                Pilih toko yang datang ke kantor. Masukkan nominal uang kertas yang Anda terima dari mereka, 
+                beserta nominal koin yang Anda serahkan. Sistem akan otomatis memperbarui saldo stok gudang.
               </p>
             </div>
           </CardContent>

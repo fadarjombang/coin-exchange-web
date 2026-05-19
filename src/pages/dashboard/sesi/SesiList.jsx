@@ -86,7 +86,7 @@ export default function SesiList() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><ClipboardList size={20} className="text-primary" /></div>
-            <div><h1 className="page-title">Sesi Tugas</h1><p className="page-subtitle">Manajemen sesi operasi lapangan</p></div>
+            <div><h1 className="page-title">Sesi Tugas</h1><p className="page-subtitle">Kelola penugasan dan pantau aktivitas kasir di lapangan</p></div>
           </div>
           {roles.includes('admin') && (
             <Button onClick={() => navigate('/dashboard/sesi/buat')} id="buat-sesi-btn">

@@ -52,26 +52,70 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
   }
 
   const adminNav = [
-    { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true, className: 'tour-menu-dashboard' },
-    { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
-    { to: '/dashboard/kantor',      icon: Building,        label: 'Transaksi Kantor' },
-    { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi',     className: 'tour-menu-transaksi' },
-    { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko',   className: 'tour-menu-toko' },
-    { to: '/dashboard/mobil',       icon: Car,             label: 'Master Mobil',  className: 'tour-menu-mobil' },
-    { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
-    { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan',       className: 'tour-menu-laporan' },
+    {
+      label: 'Utama',
+      items: [
+        { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true, className: 'tour-menu-dashboard' },
+      ]
+    },
+    {
+      label: 'Operasional',
+      items: [
+        { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
+        { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi Lapangan', className: 'tour-menu-transaksi' },
+        { to: '/dashboard/kantor',      icon: Building,        label: 'Transaksi Kantor', className: 'tour-menu-kantor' },
+      ]
+    },
+    {
+      label: 'Data & Stok',
+      items: [
+        { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
+        { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko',   className: 'tour-menu-toko' },
+        { to: '/dashboard/mobil',       icon: Car,             label: 'Master Mobil',  className: 'tour-menu-mobil' },
+      ]
+    },
+    {
+      label: 'Analitik',
+      items: [
+        { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan',       className: 'tour-menu-laporan' },
+      ]
+    }
   ]
   const managerNav = [
-    { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true, className: 'tour-menu-dashboard' },
-    { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
-    { to: '/dashboard/kantor',      icon: Building,        label: 'Transaksi Kantor' },
-    { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi',     className: 'tour-menu-transaksi' },
-    { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko',   className: 'tour-menu-toko' },
-    { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
-    { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan',       className: 'tour-menu-laporan' },
+    {
+      label: 'Utama',
+      items: [
+        { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true, className: 'tour-menu-dashboard' },
+      ]
+    },
+    {
+      label: 'Operasional',
+      items: [
+        { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
+        { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi Lapangan', className: 'tour-menu-transaksi' },
+        { to: '/dashboard/kantor',      icon: Building,        label: 'Transaksi Kantor', className: 'tour-menu-kantor' },
+      ]
+    },
+    {
+      label: 'Data & Stok',
+      items: [
+        { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
+      ]
+    },
+    {
+      label: 'Analitik',
+      items: [
+        { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan',       className: 'tour-menu-laporan' },
+      ]
+    }
   ]
   const superNav = [
-    { to: '/superadmin', icon: Users, label: 'Manajemen Akun' },
+    {
+      label: 'Sistem',
+      items: [
+        { to: '/superadmin', icon: Users, label: 'Manajemen Akun' },
+      ]
+    }
   ]
 
   const roles = Array.isArray(role) ? role : [role]
@@ -99,9 +143,20 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
       <Separator className="bg-white/10" />
 
       {/* Nav */}
-      <nav className="tour-sidebar-nav flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => (
-          <NavItem key={item.to} {...item} collapsed={collapsed} />
+      <nav className="tour-sidebar-nav flex-1 px-3 py-4 overflow-y-auto space-y-5">
+        {navItems.map((group, i) => (
+          <div key={i}>
+            {!collapsed && group.label && (
+              <p className="px-3 mb-1.5 text-[10px] font-bold tracking-[0.1em] text-[#637d9b] uppercase">
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => (
+                <NavItem key={item.to} {...item} collapsed={collapsed} />
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 

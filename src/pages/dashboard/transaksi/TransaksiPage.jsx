@@ -88,7 +88,7 @@ export default function TransaksiPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Receipt size={20} className="text-primary" /></div>
-            <div><h1 className="page-title">Transaksi</h1><p className="page-subtitle">Detail transaksi per toko untuk analisis kebutuhan koin</p></div>
+            <div><h1 className="page-title">Transaksi Lapangan</h1><p className="page-subtitle">Rekap penukaran koin oleh kasir ke setiap toko di lapangan</p></div>
           </div>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0} id="btn-export-csv">
             <Download size={14} /> Export CSV
@@ -99,9 +99,9 @@ export default function TransaksiPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" id="tour-trx-summary">
           {[
             { label: 'Total Transaksi', value: filtered.length, isMoney: false },
-            { label: 'Total Koin Keluar', value: formatRupiah(totalNilai) },
-            { label: 'Total Uang Masuk', value: formatRupiah(totalUang) },
-            { label: 'Ada Selisih', value: adaSelisih, badge: adaSelisih > 0 ? 'destructive' : 'success', isMoney: false },
+            { label: 'Koin Diserahkan', value: formatRupiah(totalNilai) },
+            { label: 'Uang Diterima', value: formatRupiah(totalUang) },
+            { label: 'Transaksi Selisih', value: adaSelisih, badge: adaSelisih > 0 ? 'destructive' : 'success', isMoney: false },
           ].map(({ label, value, badge, isMoney = true }) => (
             <Card key={label}>
               <CardContent className="p-4">
@@ -167,7 +167,7 @@ export default function TransaksiPage() {
                 {loading ? Array.from({length:8}).map((_,i) => (
                   <TableRow key={i}>{Array.from({length:7}).map((_,j) => <TableCell key={j}><Skeleton className="h-4 w-full"/></TableCell>)}</TableRow>
                 )) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Tidak ada transaksi ditemukan</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Tidak ada data transaksi pada periode ini</TableCell></TableRow>
                 ) : filtered.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDateTime(r.created_at)}</TableCell>
