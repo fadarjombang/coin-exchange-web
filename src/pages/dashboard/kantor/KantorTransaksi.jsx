@@ -41,7 +41,7 @@ export default function KantorTransaksi() {
 
   const totalKoin = Object.values(form.koin).reduce((sum, val) => sum + (val || 0), 0)
 
-  const totalUang = (form.uang.uang_50000 * 50000) + (form.uang.uang_100000 * 100000)
+  const totalUang = Object.values(form.uang).reduce((sum, val) => sum + (val || 0), 0)
 
   const handleSave = async () => {
     if (!form.toko_id) {
@@ -265,23 +265,35 @@ export default function KantorTransaksi() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Uang Rp 50.000</Label>
-                  <Input
-                    type="number"
-                    value={form.uang.uang_50000 || ''}
-                    placeholder="0"
-                    onChange={(e) => setForm(f => ({ ...f, uang: { ...f.uang, uang_50000: parseInt(e.target.value) || 0 } }))}
-                    className="h-9"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
+                    <Input
+                      type="text" inputMode="numeric"
+                      value={form.uang.uang_50000 ? parseInt(form.uang.uang_50000 || 0).toLocaleString('id-ID') : ''}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value.replace(/\D/g, '') || 0)
+                        setForm(f => ({ ...f, uang: { ...f.uang, uang_50000: val } }))
+                      }}
+                      className="pl-7 h-9"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Uang Rp 100.000</Label>
-                  <Input
-                    type="number"
-                    value={form.uang.uang_100000 || ''}
-                    placeholder="0"
-                    onChange={(e) => setForm(f => ({ ...f, uang: { ...f.uang, uang_100000: parseInt(e.target.value) || 0 } }))}
-                    className="h-9"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
+                    <Input
+                      type="text" inputMode="numeric"
+                      value={form.uang.uang_100000 ? parseInt(form.uang.uang_100000 || 0).toLocaleString('id-ID') : ''}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value.replace(/\D/g, '') || 0)
+                        setForm(f => ({ ...f, uang: { ...f.uang, uang_100000: val } }))
+                      }}
+                      className="pl-7 h-9"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
