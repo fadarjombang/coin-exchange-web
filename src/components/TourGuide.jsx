@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Joyride, STATUS } from 'react-joyride'
+import { useState, useEffect, useRef } from 'react'
+import { Joyride, STATUS, EVENTS } from 'react-joyride'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocation } from 'react-router-dom'
 
@@ -8,6 +8,14 @@ export default function TourGuide() {
   const location = useLocation()
   const [run, setRun] = useState(false)
   const [steps, setSteps] = useState([])
+
+  const roleRef = useRef(role)
+  const locationRef = useRef(location.pathname)
+
+  useEffect(() => {
+    roleRef.current = role
+    locationRef.current = location.pathname
+  }, [role, location.pathname])
 
   useEffect(() => {
     if (loading || !isAuthenticated) return
@@ -186,23 +194,30 @@ export default function TourGuide() {
   }, [role, isAuthenticated, loading, location.pathname])
 
   const handleJoyrideCallback = (data) => {
-    const { status, action } = data
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status) || action === 'close') {
+    const { status, action, type } = data
+    const isFinished = status === STATUS.FINISHED || status === STATUS.SKIPPED || action === 'close' || type === EVENTS.TOUR_END
+    
+    if (isFinished) {
       setRun(false)
       
-      const roles = Array.isArray(role) ? role : [role]
-      let currentRole = 'kasir'
-      if (roles.includes('superadmin')) currentRole = 'superadmin'
-      else if (roles.includes('admin')) currentRole = 'admin'
-      else if (roles.includes('manager')) currentRole = 'manager'
+      const currentRoles = Array.isArray(roleRef.current) ? roleRef.current : (roleRef.current ? [roleRef.current] : [])
+      let currentRole = 'admin' // default fallback to admin for safety instead of kasir
+      if (currentRoles.includes('kasir')) currentRole = 'kasir'
+      else if (currentRoles.includes('superadmin')) currentRole = 'superadmin'
+      else if (currentRoles.includes('manager')) currentRole = 'manager'
 
       if (currentRole === 'kasir') {
-        localStorage.setItem(`tour_completed_kasir_${location.pathname}`, 'true')
+        localStorage.setItem(`tour_completed_kasir_${locationRef.current}`, 'true')
         return
       }
 
       // Mark as completed regardless of which page they exit/finish on
       localStorage.setItem(`tour_completed_${currentRole}_onboarding`, 'true')
+      
+      // Also mark admin and manager just in case they switch roles
+      localStorage.setItem('tour_completed_admin_onboarding', 'true')
+      localStorage.setItem('tour_completed_manager_onboarding', 'true')
+      
       localStorage.removeItem('admin_onboarding_active')
     }
   }
