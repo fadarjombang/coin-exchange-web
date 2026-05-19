@@ -43,10 +43,15 @@ export default function TourGuide() {
     // Onboarding Dashboard Flow for Admin & Manager
     const onboardingCompletedKey = `tour_completed_${currentRole}_onboarding`
     
-    // Check if onboarding completed permanently
-    if (localStorage.getItem(onboardingCompletedKey) === 'true') {
+    // Check if onboarding completed permanently (check ALL possible keys)
+    if (
+      localStorage.getItem(onboardingCompletedKey) === 'true' ||
+      localStorage.getItem('tour_completed_admin_onboarding') === 'true' ||
+      localStorage.getItem('tour_completed_manager_onboarding') === 'true'
+    ) {
       setRun(false)
       setSteps([])
+      localStorage.removeItem('admin_onboarding_active')
       return
     }
 
@@ -194,30 +199,30 @@ export default function TourGuide() {
   }, [role, isAuthenticated, loading, location.pathname])
 
   const handleJoyrideCallback = (data) => {
-    const { status, action, type } = data
-    const isFinished = status === STATUS.FINISHED || status === STATUS.SKIPPED || action === 'close' || type === EVENTS.TOUR_END
-    
-    if (isFinished) {
-      setRun(false)
+    try {
+      const { status, action, type } = data
       
-      const currentRoles = Array.isArray(roleRef.current) ? roleRef.current : (roleRef.current ? [roleRef.current] : [])
-      let currentRole = 'admin' // default fallback to admin for safety instead of kasir
-      if (currentRoles.includes('kasir')) currentRole = 'kasir'
-      else if (currentRoles.includes('superadmin')) currentRole = 'superadmin'
-      else if (currentRoles.includes('manager')) currentRole = 'manager'
-
-      if (currentRole === 'kasir') {
-        localStorage.setItem(`tour_completed_kasir_${locationRef.current}`, 'true')
-        return
+      // Use both STATUS constants AND raw strings as bulletproof fallback
+      const isFinished = 
+        status === STATUS.FINISHED || status === 'finished' ||
+        status === STATUS.SKIPPED || status === 'skipped' ||
+        action === 'close' || 
+        type === EVENTS.TOUR_END || type === 'tour:end'
+      
+      if (isFinished) {
+        setRun(false)
+        
+        // Nuclear: mark BOTH admin and manager as completed no matter what
+        localStorage.setItem('tour_completed_admin_onboarding', 'true')
+        localStorage.setItem('tour_completed_manager_onboarding', 'true')
+        localStorage.removeItem('admin_onboarding_active')
       }
-
-      // Mark as completed regardless of which page they exit/finish on
-      localStorage.setItem(`tour_completed_${currentRole}_onboarding`, 'true')
-      
-      // Also mark admin and manager just in case they switch roles
+    } catch (err) {
+      // Failsafe: if anything crashes, still mark as completed
+      console.error('TourGuide callback error:', err)
+      setRun(false)
       localStorage.setItem('tour_completed_admin_onboarding', 'true')
       localStorage.setItem('tour_completed_manager_onboarding', 'true')
-      
       localStorage.removeItem('admin_onboarding_active')
     }
   }
