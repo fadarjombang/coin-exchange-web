@@ -107,14 +107,14 @@ export default function BuatSesi() {
       if (!tim.tanggal || !tim.mobil_id || !tim.kasir_id || !tim.driver_id || !tim.nama_polisi) {
         toast({ title: 'Lengkapi semua field', variant: 'destructive' }); return false
       }
-      // Cek apakah kasir sudah punya sesi aktif/pending
+      // Cek apakah mobil sudah punya sesi aktif/pending
       const { data: existingSesi } = await supabase.from('sesi_tugas')
-        .select('id, status').eq('kasir_id', tim.kasir_id)
+        .select('id, status, tanggal').eq('mobil_id', tim.mobil_id)
         .in('status', ['pending_approval', 'active', 'pending_close'])
         .limit(1)
       if (existingSesi?.length > 0) {
-        const status = existingSesi[0].status
-        toast({ title: 'Kasir sudah punya sesi aktif', description: `Sesi dengan status "${status}" masih berjalan. Selesaikan dulu sebelum membuat sesi baru.`, variant: 'destructive' })
+        const sesi = existingSesi[0]
+        toast({ title: 'Kendaraan sudah punya sesi aktif', description: `Sesi tgl ${sesi.tanggal} dengan status "${sesi.status}" masih berjalan. Selesaikan dulu sebelum membuat sesi baru.`, variant: 'destructive' })
         return false
       }
     }
