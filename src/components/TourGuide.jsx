@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import Joyride from 'react-joyride'
+import { Joyride } from 'react-joyride'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocation } from 'react-router-dom'
 
