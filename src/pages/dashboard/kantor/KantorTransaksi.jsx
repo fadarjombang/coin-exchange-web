@@ -39,10 +39,7 @@ export default function KantorTransaksi() {
     loadData()
   }, [])
 
-  const totalKoin = Object.entries(form.koin).reduce((sum, [key, val]) => {
-    const denom = DENOM_LIST.find(d => d.key === key)
-    return sum + (val * (denom?.value || 0))
-  }, 0)
+  const totalKoin = Object.values(form.koin).reduce((sum, val) => sum + (val || 0), 0)
 
   const totalUang = (form.uang.uang_50000 * 50000) + (form.uang.uang_100000 * 100000)
 
