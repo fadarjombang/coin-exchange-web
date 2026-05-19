@@ -29,6 +29,9 @@ export default function Rekonsiliasi() {
   const [uangSetoran, setUangSetoran] = useState('')
   const [catatan, setCatatan]   = useState('')
   const [photo, setPhoto]       = useState(null)
+  const [sigUpdate, setSigUpdate] = useState(0)
+
+  const triggerSigUpdate = useCallback(() => setSigUpdate(v => v + 1), [])
 
   const ttdRef    = useRef(null)
   const ttdCanvas = useRef(null)
@@ -57,6 +60,8 @@ export default function Rekonsiliasi() {
     if (!ttdCanvas.current) return
     const pad = new SignaturePad(ttdCanvas.current, { backgroundColor: 'rgb(248,250,252)', penColor: '#1e3a5f' })
     ttdRef.current = pad
+    pad.addEventListener('endStroke', triggerSigUpdate)
+    
     const resize = () => {
       const c = ttdCanvas.current; if (!c) return
       const r = Math.max(window.devicePixelRatio || 1, 1)
@@ -64,8 +69,11 @@ export default function Rekonsiliasi() {
       c.getContext('2d').scale(r, r); pad.clear()
     }
     resize()
-    return () => pad.off()
-  }, [loading])
+    return () => {
+      pad.removeEventListener('endStroke', triggerSigUpdate)
+      pad.off()
+    }
+  }, [loading, triggerSigUpdate])
 
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0]; if (!file) return
@@ -307,7 +315,7 @@ export default function Rekonsiliasi() {
           </CardHeader>
           <CardContent>
             <canvas ref={ttdCanvas} className="signature-canvas w-full h-28 block rounded-lg" />
-            <Button type="button" variant="ghost" size="sm" className="mt-1" onClick={() => ttdRef.current?.clear()}>
+            <Button type="button" variant="ghost" size="sm" className="mt-1" onClick={() => { ttdRef.current?.clear(); triggerSigUpdate(); }}>
               <RotateCcw size={14} /> Hapus
             </Button>
           </CardContent>
