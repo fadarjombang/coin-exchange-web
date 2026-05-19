@@ -234,20 +234,20 @@ export default function SesiDetail() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in max-w-4xl">
+      <div className="space-y-6 animate-fade-in max-w-6xl">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/sesi')}><ArrowLeft size={18} /></Button>
             <div>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h1 className="page-title">Detail Sesi Tugas</h1>
                 <Badge variant={SESSION_STATUS[status]?.variant || 'secondary'}>{SESSION_STATUS[status]?.label}</Badge>
               </div>
               <p className="page-subtitle">{formatDate(sesi?.tanggal)} · {sesi?.kasir?.name}</p>
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             {sesi && (
               <Button variant="outline" disabled={pdfLoading} onClick={() => generateSuratTugasPDF([sesi], setPdfLoading, toast)}>
                 {pdfLoading ? <Loader2 size={16} className="animate-spin mr-1.5" /> : <Download size={16} className="mr-1.5" />}
