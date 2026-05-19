@@ -1,7 +1,22 @@
-import { useState, useEffect, useRef } from 'react'
-import { Joyride, STATUS, EVENTS } from 'react-joyride'
+import { useState, useEffect } from 'react'
+import Joyride from 'react-joyride'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocation } from 'react-router-dom'
+
+// Simple helper: has tour been completed?
+function isTourDone() {
+  return (
+    localStorage.getItem('tour_completed_admin_onboarding') === 'true' ||
+    localStorage.getItem('tour_completed_manager_onboarding') === 'true'
+  )
+}
+
+// Simple helper: mark tour as done forever
+function markTourDone() {
+  localStorage.setItem('tour_completed_admin_onboarding', 'true')
+  localStorage.setItem('tour_completed_manager_onboarding', 'true')
+  localStorage.removeItem('admin_onboarding_active')
+}
 
 export default function TourGuide() {
   const { role, isAuthenticated, loading } = useAuth()
@@ -9,60 +24,36 @@ export default function TourGuide() {
   const [run, setRun] = useState(false)
   const [steps, setSteps] = useState([])
 
-  const roleRef = useRef(role)
-  const locationRef = useRef(location.pathname)
-
-  useEffect(() => {
-    roleRef.current = role
-    locationRef.current = location.pathname
-  }, [role, location.pathname])
-
   useEffect(() => {
     if (loading || !isAuthenticated) return
-    
+
     const roles = Array.isArray(role) ? role : [role]
     let currentRole = 'kasir'
     if (roles.includes('superadmin')) currentRole = 'superadmin'
     else if (roles.includes('admin')) currentRole = 'admin'
     else if (roles.includes('manager')) currentRole = 'manager'
 
-    // Kasir has no tour guide on the mobile app
-    if (currentRole === 'kasir') {
+    // No tour for kasir or superadmin
+    if (currentRole === 'kasir' || currentRole === 'superadmin') {
       setRun(false)
       setSteps([])
       return
     }
 
-    // Superadmin has no onboarding dashboard tour
-    if (currentRole === 'superadmin') {
+    // If tour already completed, never show again
+    if (isTourDone()) {
       setRun(false)
       setSteps([])
       return
     }
 
-    // Onboarding Dashboard Flow for Admin & Manager
-    const onboardingCompletedKey = `tour_completed_${currentRole}_onboarding`
-    
-    // Check if onboarding completed permanently (check ALL possible keys)
-    if (
-      localStorage.getItem(onboardingCompletedKey) === 'true' ||
-      localStorage.getItem('tour_completed_admin_onboarding') === 'true' ||
-      localStorage.getItem('tour_completed_manager_onboarding') === 'true'
-    ) {
-      setRun(false)
-      setSteps([])
-      localStorage.removeItem('admin_onboarding_active')
-      return
-    }
-
-    // Enable active flow if visiting dashboard first time
+    // Start active flow on dashboard
     let activeFlow = localStorage.getItem('admin_onboarding_active')
     if (!activeFlow && location.pathname === '/dashboard') {
       localStorage.setItem('admin_onboarding_active', 'true')
       activeFlow = 'true'
     }
 
-    // If not in the active onboarding flow, don't run
     if (activeFlow !== 'true') {
       setRun(false)
       setSteps([])
@@ -199,31 +190,29 @@ export default function TourGuide() {
   }, [role, isAuthenticated, loading, location.pathname])
 
   const handleJoyrideCallback = (data) => {
-    try {
-      const { status, action, type } = data
-      
-      // Use both STATUS constants AND raw strings as bulletproof fallback
-      const isFinished = 
-        status === STATUS.FINISHED || status === 'finished' ||
-        status === STATUS.SKIPPED || status === 'skipped' ||
-        action === 'close' || 
-        type === EVENTS.TOUR_END || type === 'tour:end'
-      
-      if (isFinished) {
-        setRun(false)
-        
-        // Nuclear: mark BOTH admin and manager as completed no matter what
-        localStorage.setItem('tour_completed_admin_onboarding', 'true')
-        localStorage.setItem('tour_completed_manager_onboarding', 'true')
-        localStorage.removeItem('admin_onboarding_active')
-      }
-    } catch (err) {
-      // Failsafe: if anything crashes, still mark as completed
-      console.error('TourGuide callback error:', err)
+    // Log EVERYTHING so we can debug
+    console.log('[TourGuide] callback:', JSON.stringify({
+      status: data.status,
+      action: data.action,
+      type: data.type,
+      index: data.index,
+      path: location.pathname
+    }))
+
+    const { status, action } = data
+
+    // Catch EVERY possible tour-ending signal using raw strings only (no constants)
+    if (
+      status === 'finished' ||
+      status === 'skipped' ||
+      action === 'close' ||
+      action === 'skip' ||
+      action === 'reset'
+    ) {
+      console.log('[TourGuide] >>> MARKING AS DONE <<<')
       setRun(false)
-      localStorage.setItem('tour_completed_admin_onboarding', 'true')
-      localStorage.setItem('tour_completed_manager_onboarding', 'true')
-      localStorage.removeItem('admin_onboarding_active')
+      markTourDone()
+      return
     }
   }
 
