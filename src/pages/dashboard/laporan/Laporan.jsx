@@ -61,7 +61,6 @@ export default function Laporan() {
 
       (assignments || []).forEach((a) => {
         if (!a.toko) return
-        if (a.sesi?.status !== 'closed') return
         const storeId = a.toko_id
         if (!storeMap[storeId]) {
           storeMap[storeId] = {
