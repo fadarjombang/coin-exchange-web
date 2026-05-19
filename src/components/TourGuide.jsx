@@ -186,8 +186,8 @@ export default function TourGuide() {
   }, [role, isAuthenticated, loading, location.pathname])
 
   const handleJoyrideCallback = (data) => {
-    const { status } = data
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+    const { status, action } = data
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status) || action === 'close') {
       setRun(false)
       
       const roles = Array.isArray(role) ? role : [role]
@@ -201,11 +201,9 @@ export default function TourGuide() {
         return
       }
 
-      // If user finished the whole dashboard onboarding on the Laporan page, or clicked Skip anywhere:
-      if (location.pathname === '/dashboard/laporan' || status === STATUS.SKIPPED) {
-        localStorage.setItem(`tour_completed_${currentRole}_onboarding`, 'true')
-        localStorage.removeItem('admin_onboarding_active')
-      }
+      // Mark as completed regardless of which page they exit/finish on
+      localStorage.setItem(`tour_completed_${currentRole}_onboarding`, 'true')
+      localStorage.removeItem('admin_onboarding_active')
     }
   }
 
