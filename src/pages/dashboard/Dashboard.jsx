@@ -286,7 +286,7 @@ export default function Dashboard() {
                 ) : distribusiArea.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-4">Belum ada data distribusi koin hari ini</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1.5">
                     {distribusiArea.map((item) => {
                       const maxTotal = Math.max(...distribusiArea.map(d => d.total))
                       const percent = maxTotal > 0 ? Math.round((item.total / maxTotal) * 100) : 0
