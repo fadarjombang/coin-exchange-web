@@ -49,7 +49,6 @@ export default function Laporan() {
     try {
       const { data: assignments, error } = await supabase.from('toko_assignment')
         .select('*, toko:toko_id(*), sesi:sesi_tugas_id(tanggal,status)')
-        .gte('sesi.tanggal', from).lte('sesi.tanggal', to)
         .order('updated_at', { ascending: false })
 
       if (error) throw error
@@ -126,7 +125,7 @@ export default function Laporan() {
     } finally {
       setLoadingSkip(false)
     }
-  }, [from, to])
+  }, [])
 
   useEffect(() => {
     loadSkipAnalysis()
@@ -196,9 +195,6 @@ export default function Laporan() {
           {/* TAB 1: OPTIMASI PRIORITAS KUNJUNGAN (SKIP ANALYSIS) */}
           <TabsContent value="optimasi" className="space-y-6">
             
-            {/* Date Range Filter for Optimasi */}
-            <DateRangeFilter from={from} to={to} onFrom={setFrom} onTo={setTo} onSearch={loadSkipAnalysis} loading={loadingSkip} />
-
             {/* Highlight Alert Box */}
             <Card className="border-amber-200 bg-amber-50/50" id="tour-report-intro">
               <CardContent className="p-4 flex items-start gap-3">
