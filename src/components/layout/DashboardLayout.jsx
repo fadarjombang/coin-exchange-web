@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import {
   LayoutDashboard, ClipboardList, Store, Car, Package,
-  BarChart3, Users, LogOut, Menu, X, ChevronRight, Bell, Coins, Receipt,
+  BarChart3, Users, LogOut, Menu, X, ChevronRight, Bell, Coins, Receipt, Building,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -54,19 +54,23 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
   const adminNav = [
     { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true, className: 'tour-menu-dashboard' },
     { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
+    { to: '/dashboard/kantor',      icon: Building,        label: 'Transaksi Kantor' },
     { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi',     className: 'tour-menu-transaksi' },
     { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko',   className: 'tour-menu-toko' },
     { to: '/dashboard/mobil',       icon: Car,             label: 'Master Mobil',  className: 'tour-menu-mobil' },
     { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
     { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan',       className: 'tour-menu-laporan' },
+    { to: '/dashboard/kantor/laporan', icon: BarChart3,    label: 'Laporan Kantor' },
   ]
   const managerNav = [
     { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true, className: 'tour-menu-dashboard' },
     { to: '/dashboard/sesi',        icon: ClipboardList,   label: 'Sesi Tugas',    badge: pendingCount, className: 'tour-menu-sesi' },
+    { to: '/dashboard/kantor',      icon: Building,        label: 'Transaksi Kantor' },
     { to: '/dashboard/transaksi',   icon: Receipt,         label: 'Transaksi',     className: 'tour-menu-transaksi' },
     { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko',   className: 'tour-menu-toko' },
     { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
     { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan',       className: 'tour-menu-laporan' },
+    { to: '/dashboard/kantor/laporan', icon: BarChart3,    label: 'Laporan Kantor' },
   ]
   const superNav = [
     { to: '/superadmin', icon: Users, label: 'Manajemen Akun' },

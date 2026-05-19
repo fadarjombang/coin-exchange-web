@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS transaksi (
   ttd_pic_toko        TEXT,
   ttd_kasir           TEXT,
   status              TEXT        NOT NULL DEFAULT 'submitted',
+  jenis               TEXT        NOT NULL DEFAULT 'field' CHECK (jenis IN ('field','kantor')),
   created_at          TIMESTAMPTZ DEFAULT now(),
   UNIQUE(sesi_tugas_id, toko_id)
 );
@@ -185,7 +186,7 @@ CREATE TABLE IF NOT EXISTS stok_gudang (
 CREATE TABLE IF NOT EXISTS stok_gudang_log (
   id            UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
   tanggal       TIMESTAMPTZ DEFAULT now(),
-  tipe          TEXT        NOT NULL CHECK (tipe IN ('keluar_modal','masuk_sisa','penyesuaian')),
+  tipe          TEXT        NOT NULL CHECK (tipe IN ('keluar_modal','masuk_sisa','penyesuaian','penukaran_kantor')),
   keterangan    TEXT,
   sesi_tugas_id UUID        REFERENCES sesi_tugas(id),
   delta_100     BIGINT      DEFAULT 0,
@@ -197,6 +198,8 @@ CREATE TABLE IF NOT EXISTS stok_gudang_log (
   delta_10000   BIGINT      DEFAULT 0,
   delta_20000   BIGINT      DEFAULT 0,
   delta_total   BIGINT,
+  delta_uang_50000  BIGINT DEFAULT 0,
+  delta_uang_100000 BIGINT DEFAULT 0,
   created_by    UUID        REFERENCES users(id),
   created_at    TIMESTAMPTZ DEFAULT now()
 );
@@ -278,7 +281,7 @@ CREATE POLICY "trx_select_admin" ON transaksi FOR SELECT TO authenticated
 CREATE POLICY "trx_select_kasir" ON transaksi FOR SELECT TO authenticated
   USING (kasir_id = auth.uid());
 CREATE POLICY "trx_insert"       ON transaksi FOR INSERT TO authenticated
-  WITH CHECK (get_my_role() = 'kasir');
+  WITH CHECK (get_my_role() IN ('kasir','admin','superadmin'));
 
 -- REKONSILIASI: admin/manager see all; kasir inserts/sees own
 CREATE POLICY "rek_select_admin" ON rekonsiliasi FOR SELECT TO authenticated
