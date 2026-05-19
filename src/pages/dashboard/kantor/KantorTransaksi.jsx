@@ -179,29 +179,47 @@ export default function KantorTransaksi() {
             <CardDescription>Toko menyerahkan uang besar, admin menyerahkan koin</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Pilih Toko */}
+            {/* Pilih Toko - ComboBox Style */}
             <div className="space-y-2">
               <Label>Pilih Toko *</Label>
               <div className="relative">
-                <Input
-                  placeholder="Cari toko (kode atau nama)..."
-                  value={tokoSearch}
-                  onChange={(e) => setTokoSearch(e.target.value)}
-                  className="mb-2"
-                />
-                <Select value={form.toko_id} onValueChange={(v) => setForm(f => ({ ...f, toko_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Pilih toko..." /></SelectTrigger>
-                  <SelectContent>
-                    {tokos.filter(t => 
-                      !tokoSearch || 
-                      t.kode_toko.toLowerCase().includes(tokoSearch.toLowerCase()) ||
-                      t.nama_toko.toLowerCase().includes(tokoSearch.toLowerCase()) ||
-                      t.area?.toLowerCase().includes(tokoSearch.toLowerCase())
-                    ).map(t => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.kode_toko} - {t.nama_toko} ({t.area})
-                      </SelectItem>
-                    ))}
+                <Select 
+                  value={form.toko_id} 
+                  onValueChange={(v) => {
+                    setForm(f => ({ ...f, toko_id: v }))
+                    setTokoSearch('')
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={form.toko_id ? tokos.find(t => t.id === form.toko_id)?.nama_toko + ' (' + tokos.find(t => t.id === form.toko_id)?.kode_toko + ')' : "Pilih toko..."} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <div className="p-2 border-b">
+                      <Input
+                        placeholder="Cari kode atau nama toko..."
+                        value={tokoSearch}
+                        onChange={(e) => setTokoSearch(e.target.value)}
+                        autoFocus
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto">
+                      {tokos
+                        .filter(t => 
+                          !tokoSearch || 
+                          t.kode_toko.toLowerCase().includes(tokoSearch.toLowerCase()) ||
+                          t.nama_toko.toLowerCase().includes(tokoSearch.toLowerCase()) ||
+                          t.area?.toLowerCase().includes(tokoSearch.toLowerCase())
+                        )
+                        .map(t => (
+                          <SelectItem key={t.id} value={t.id} className="cursor-pointer">
+                            <div className="flex flex-col">
+                              <span className="font-medium">{t.nama_toko}</span>
+                              <span className="text-xs text-muted-foreground">{t.kode_toko} · {t.area}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </div>
                   </SelectContent>
                 </Select>
               </div>
