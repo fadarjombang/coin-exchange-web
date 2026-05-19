@@ -35,7 +35,7 @@ import AppProfil from './pages/app/Profil'
 
 // Dashboard - Kantor
 import KantorTransaksi from './pages/dashboard/kantor/KantorTransaksi'
-import KantorLaporan from './pages/dashboard/kantor/KantorLaporan'
+import KantorTransaksiBaru from './pages/dashboard/kantor/KantorTransaksiBaru'
 
 // Layout guards
 import ProtectedRoute from './components/layout/ProtectedRoute'
@@ -142,9 +142,9 @@ export default function App() {
               <KantorTransaksi />
             </ProtectedRoute>
           } />
-          <Route path="/dashboard/kantor/laporan" element={
+          <Route path="/dashboard/kantor/baru" element={
             <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <KantorLaporan />
+              <KantorTransaksiBaru />
             </ProtectedRoute>
           } />
           <Route path="/dashboard/transaksi" element={

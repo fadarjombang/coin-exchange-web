@@ -60,7 +60,6 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
     { to: '/dashboard/mobil',       icon: Car,             label: 'Master Mobil',  className: 'tour-menu-mobil' },
     { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
     { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan',       className: 'tour-menu-laporan' },
-    { to: '/dashboard/kantor/laporan', icon: BarChart3,    label: 'Laporan Kantor' },
   ]
   const managerNav = [
     { to: '/dashboard',             icon: LayoutDashboard, label: 'Dashboard',      end: true, className: 'tour-menu-dashboard' },
@@ -70,7 +69,6 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
     { to: '/dashboard/toko',        icon: Store,           label: 'Master Toko',   className: 'tour-menu-toko' },
     { to: '/dashboard/stok',        icon: Package,         label: 'Stok Gudang',   className: 'tour-menu-stok' },
     { to: '/dashboard/laporan',     icon: BarChart3,       label: 'Laporan',       className: 'tour-menu-laporan' },
-    { to: '/dashboard/kantor/laporan', icon: BarChart3,    label: 'Laporan Kantor' },
   ]
   const superNav = [
     { to: '/superadmin', icon: Users, label: 'Manajemen Akun' },

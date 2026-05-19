@@ -31,7 +31,8 @@ export default function TransaksiPage() {
   const fetch = useCallback(async () => {
     setLoading(true)
     let q = supabase.from('transaksi')
-      .select('*, toko:toko_id(kode_toko, nama_toko, area), kasir:kasir_id(name)')
+      .select('*, toko:toko_id(kode_toko, nama_toko, area), kasir:kasir_id(name), sesi:sesi_tugas_id(tanggal)')
+      .eq('jenis', 'field')
       .gte('created_at', `${dateFrom}T00:00:00`)
       .lte('created_at', `${dateTo}T23:59:59`)
       .order('created_at', { ascending: false })
@@ -171,10 +172,7 @@ export default function TransaksiPage() {
                   <TableRow key={r.id}>
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDateTime(r.created_at)}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-mono text-xs text-muted-foreground">{r.toko?.kode_toko}</p>
-                        {r.jenis === 'kantor' && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Kantor</Badge>}
-                      </div>
+                      <p className="font-mono text-xs text-muted-foreground">{r.toko?.kode_toko}</p>
                       <p className="font-medium text-sm">{r.toko?.nama_toko}</p>
                     </TableCell>
                     <TableCell className="text-sm">{r.kasir?.name || '-'}</TableCell>
