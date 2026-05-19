@@ -35,6 +35,7 @@ export default function Laporan() {
   const [reasonStats, setReasonStats] = useState([])
   const [loadingSkip, setLoadingSkip] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [searchToko, setSearchToko] = useState('')
   const ITEMS_PER_PAGE = 10
 
   const search = async () => {
@@ -162,6 +163,19 @@ export default function Laporan() {
   const criticalSkipCount = skipData.filter(s => s.skip_ratio >= 50 && s.total_visits >= 2).length
   const topReasonGlobal = reasonStats[0]?.reason || 'Koin masih banyak'
 
+  // Filter store list by search
+  const filteredSkipData = skipData.filter(s => {
+    if (!searchToko) return true
+    const q = searchToko.toLowerCase()
+    return s.nama_toko?.toLowerCase().includes(q) || s.kode_toko?.toLowerCase().includes(q) || s.area?.toLowerCase().includes(q)
+  })
+
+  // Reset page when search changes
+  const handleSearchChange = (value) => {
+    setSearchToko(value)
+    setCurrentPage(1)
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
@@ -181,7 +195,7 @@ export default function Laporan() {
               <Button variant="outline" size="sm" onClick={loadSkipAnalysis} disabled={loadingSkip}>
                 <RefreshCw size={14} className={loadingSkip ? 'animate-spin' : ''} /> Segarkan
               </Button>
-              <Button size="sm" onClick={handleExportSkipCSV} disabled={criticalSkipCount === 0} id="btn-export-rekomendasi">
+              <Button size="sm" onClick={handleExportSkipCSV} disabled={skipData.length === 0} id="btn-export-rekomendasi">
                 <Download size={14} /> Ekspor Rekomendasi CSV
               </Button>
             </div>
@@ -265,8 +279,21 @@ export default function Laporan() {
               <div className="lg:col-span-2 space-y-4">
                 <Card id="tour-report-skipped-list">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Daftar Analisis Skip Toko</CardTitle>
-                    <CardDescription>Rasio skip dihitung dari perbandingan jumlah kunjungan dilewati vs total penugasan sesi</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base">Daftar Analisis Skip Toko</CardTitle>
+                        <CardDescription>Rasio skip dihitung dari perbandingan jumlah kunjungan dilewati vs total penugasan sesi</CardDescription>
+                      </div>
+                      <div className="relative">
+                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Cari toko..."
+                          value={searchToko}
+                          onChange={(e) => handleSearchChange(e.target.value)}
+                          className="h-8 w-48 pl-8 text-sm"
+                        />
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-0">
                     <Table>
@@ -286,14 +313,16 @@ export default function Laporan() {
                               <TableCell colSpan={5} className="py-8 text-center"><Loader2 className="animate-spin mx-auto text-primary" /></TableCell>
                             </TableRow>
                           ))
-                        ) : skipData.length === 0 ? (
+                        ) : filteredSkipData.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="py-12 text-center text-muted-foreground text-sm">Tidak ada riwayat skip toko tercatat.</TableCell>
+                            <TableCell colSpan={5} className="py-12 text-center text-muted-foreground text-sm">
+                              {searchToko ? `Tidak ada toko yang matches "${searchToko}"` : 'Tidak ada riwayat skip toko tercatat.'}
+                            </TableCell>
                           </TableRow>
                         ) : (
                           (() => {
                             const startIdx = (currentPage - 1) * ITEMS_PER_PAGE
-                            const paginatedData = skipData.slice(startIdx, startIdx + ITEMS_PER_PAGE)
+                            const paginatedData = filteredSkipData.slice(startIdx, startIdx + ITEMS_PER_PAGE)
                             return paginatedData.map((item) => {
                             const isCritical = item.skip_ratio >= 50 && item.total_visits >= 2
                             return (
@@ -336,10 +365,10 @@ export default function Laporan() {
                         )}
                       </TableBody>
                     </Table>
-                    {skipData.length > ITEMS_PER_PAGE && (
+                    {filteredSkipData.length > ITEMS_PER_PAGE && (
                       <div className="flex items-center justify-between px-4 py-3 border-t">
                         <p className="text-sm text-muted-foreground">
-                          Halaman {currentPage} dari {Math.ceil(skipData.length / ITEMS_PER_PAGE)}
+                          Halaman {currentPage} dari {Math.ceil(filteredSkipData.length / ITEMS_PER_PAGE)}
                         </p>
                         <div className="flex gap-2">
                           <Button
@@ -353,7 +382,7 @@ export default function Laporan() {
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={currentPage >= Math.ceil(skipData.length / ITEMS_PER_PAGE)}
+                            disabled={currentPage >= Math.ceil(filteredSkipData.length / ITEMS_PER_PAGE)}
                             onClick={() => setCurrentPage(p => p + 1)}
                           >
                             Berikutnya
