@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Building, Coins, Banknote, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Loader2, Building, Coins, Banknote, AlertTriangle, CheckCircle2, Search } from 'lucide-react'
 import { formatRupiah, DENOM_LIST, emptyDenoms } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
@@ -24,7 +24,7 @@ export default function KantorTransaksi() {
     koin: emptyDenoms(),
     uang: { uang_50000: 0, uang_100000: 0 }
   })
-
+  const [tokoSearch, setTokoSearch] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -185,16 +185,29 @@ export default function KantorTransaksi() {
             {/* Pilih Toko */}
             <div className="space-y-2">
               <Label>Pilih Toko *</Label>
-              <Select value={form.toko_id} onValueChange={(v) => setForm(f => ({ ...f, toko_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Pilih toko..." /></SelectTrigger>
-                <SelectContent>
-                  {tokos.map(t => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.kode_toko} - {t.nama_toko} ({t.area})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Input
+                  placeholder="Cari toko (kode atau nama)..."
+                  value={tokoSearch}
+                  onChange={(e) => setTokoSearch(e.target.value)}
+                  className="mb-2"
+                />
+                <Select value={form.toko_id} onValueChange={(v) => setForm(f => ({ ...f, toko_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Pilih toko..." /></SelectTrigger>
+                  <SelectContent>
+                    {tokos.filter(t => 
+                      !tokoSearch || 
+                      t.kode_toko.toLowerCase().includes(tokoSearch.toLowerCase()) ||
+                      t.nama_toko.toLowerCase().includes(tokoSearch.toLowerCase()) ||
+                      t.area?.toLowerCase().includes(tokoSearch.toLowerCase())
+                    ).map(t => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.kode_toko} - {t.nama_toko} ({t.area})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Koin yang Diberikan */}
