@@ -135,9 +135,9 @@ export default function Laporan() {
 
   // Export CSV Recommendation
   const handleExportSkipCSV = () => {
-    const lowPriorityStores = skipData.filter(s => s.skip_ratio >= 50 && s.total_visits >= 2)
+    const storesToExport = skipData.filter(s => s.total_skipped > 0)
     const header = ['Kode Toko', 'Nama Toko', 'Area', 'Total Penugasan', 'Total Dilewati', 'Rasio Skip (%)', 'Alasan Terbanyak', 'Rekomendasi Tindakan']
-    const csvRows = lowPriorityStores.map((s) => [
+    const csvRows = storesToExport.map((s) => [
       s.kode_toko,
       s.nama_toko,
       s.area || '-',
@@ -145,7 +145,7 @@ export default function Laporan() {
       s.total_skipped,
       `${s.skip_ratio}%`,
       s.top_reason,
-      'TURUNKAN PRIORITAS / SKIP KUNJUNGAN HINGGA KOIN TIPIS'
+      s.skip_ratio >= 50 && s.total_visits >= 2 ? 'TURUNKAN PRIORITAS' : 'EKSPERIMEN RISK'
     ])
     
     const csv = [header, ...csvRows].map((r) => r.map(v => `"${v}"`).join(',')).join('\n')
