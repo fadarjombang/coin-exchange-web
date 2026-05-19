@@ -34,6 +34,8 @@ export default function Laporan() {
   const [skipData, setSkipData] = useState([])
   const [reasonStats, setReasonStats] = useState([])
   const [loadingSkip, setLoadingSkip] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
   const search = async () => {
     setLoading(true)
@@ -229,7 +231,7 @@ export default function Laporan() {
                 <CardContent className="p-5 flex items-center justify-between">
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Penyebab Skip Utama</p>
-                    <p className="text-lg font-bold text-foreground truncate max-w-[200px]" title={topReasonGlobal}>
+                    <p className="text-lg font-bold text-foreground break-words" title={topReasonGlobal}>
                       {loadingSkip ? '...' : topReasonGlobal}
                     </p>
                     <p className="text-[10px] text-muted-foreground">Alasan paling sering diinput kasir</p>
@@ -289,7 +291,10 @@ export default function Laporan() {
                             <TableCell colSpan={5} className="py-12 text-center text-muted-foreground text-sm">Tidak ada riwayat skip toko tercatat.</TableCell>
                           </TableRow>
                         ) : (
-                          skipData.map((item) => {
+                          (() => {
+                            const startIdx = (currentPage - 1) * ITEMS_PER_PAGE
+                            const paginatedData = skipData.slice(startIdx, startIdx + ITEMS_PER_PAGE)
+                            return paginatedData.map((item) => {
                             const isCritical = item.skip_ratio >= 50 && item.total_visits >= 2
                             return (
                               <TableRow key={item.id}>
@@ -327,9 +332,35 @@ export default function Laporan() {
                               </TableRow>
                             )
                           })
+                        })()
                         )}
                       </TableBody>
                     </Table>
+                    {skipData.length > ITEMS_PER_PAGE && (
+                      <div className="flex items-center justify-between px-4 py-3 border-t">
+                        <p className="text-sm text-muted-foreground">
+                          Halaman {currentPage} dari {Math.ceil(skipData.length / ITEMS_PER_PAGE)}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(p => p - 1)}
+                          >
+                            Sebelumnya
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage >= Math.ceil(skipData.length / ITEMS_PER_PAGE)}
+                            onClick={() => setCurrentPage(p => p + 1)}
+                          >
+                            Berikutnya
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
