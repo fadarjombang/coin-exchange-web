@@ -66,15 +66,21 @@ export default function KantorTransaksi() {
     try {
       const selectedToko = tokos.find(t => t.id === form.toko_id)
 
-      // Update stok gudang
-      const stokUpdate = { ...stok }
-      for (const d of DENOM_LIST) {
-        stokUpdate[d.key] = Math.max(0, (stok[d.key] || 0) - (form.koin[d.key] || 0))
+      // Update stok gudang — hanya kirim kolom yang bisa di-update (exclude generated columns)
+      const stokUpdate = {
+        // Koin berkurang
+        ...DENOM_LIST.reduce((acc, d) => {
+          acc[d.key] = Math.max(0, (stok[d.key] || 0) - (form.koin[d.key] || 0))
+          return acc
+        }, {}),
+        // Uang bertambah
+        uang_50000: (stok.uang_50000 || 0) + form.uang.uang_50000,
+        uang_100000: (stok.uang_100000 || 0) + form.uang.uang_100000,
+        // Metadata
+        updated_by: profile.id,
+        last_updated: new Date().toISOString(),
+        // NOTE: total_nilai sengaja TIDAK dikirim — itu generated column (GENERATED ALWAYS AS)
       }
-      stokUpdate.uang_50000 = (stok.uang_50000 || 0) + form.uang.uang_50000
-      stokUpdate.uang_100000 = (stok.uang_100000 || 0) + form.uang.uang_100000
-      stokUpdate.updated_by = profile.id
-      stokUpdate.last_updated = new Date().toISOString()
 
       const { error: stokErr } = await supabaseAdmin.from('stok_gudang').update(stokUpdate).eq('id', stok.id)
       if (stokErr) throw new Error('Gagal update stok: ' + stokErr.message)
@@ -96,11 +102,10 @@ export default function KantorTransaksi() {
       })
       if (logErr) console.error('Log error:', logErr.message)
 
-      // Insert transaksi (kantor - without sesi_tugas)
+      // Insert transaksi kantor (sesi_tugas_id nullable setelah migrasi DB)
       const { error: trxErr } = await supabaseAdmin.from('transaksi').insert({
-        sesi_tugas_id: null, // null for kantor transactions
         toko_id: form.toko_id,
-        kasir_id: profile.id, // using admin as "kasir" for this context
+        kasir_id: profile.id,
         tanggal_waktu: new Date().toISOString(),
         ...form.koin,
         total_koin_nilai: totalKoin,
@@ -108,8 +113,8 @@ export default function KantorTransaksi() {
         uang_100000: form.uang.uang_100000,
         total_uang_diterima: totalUang,
         selisih: 0,
-        pic_nama: 'ADMIN',
-        pic_jabatan: 'Admin',
+        pic_nama: profile?.name || 'Admin',
+        pic_jabatan: 'Admin/Manager',
         status: 'submitted',
         jenis: 'kantor'
       })
