@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
@@ -215,16 +215,20 @@ export default function BuatSesi() {
         }).eq('id', editId)
         if (sesiErr) throw sesiErr
 
-        // Update modal_koin
-        await supabase.from('modal_koin').update({ ...modal }).eq('sesi_tugas_id', editId)
+        // Update modal_koin (using supabaseAdmin to bypass missing update RLS policy)
+        const { error: modalErr } = await supabaseAdmin.from('modal_koin').update({ ...modal }).eq('sesi_tugas_id', editId)
+        if (modalErr) throw modalErr
 
-        // Replace toko_assignment: hapus lama, insert baru
-        await supabase.from('toko_assignment').delete().eq('sesi_tugas_id', editId)
+        // Replace toko_assignment: hapus lama, insert baru (using supabaseAdmin to bypass missing DELETE policy)
+        const { error: delErr } = await supabaseAdmin.from('toko_assignment').delete().eq('sesi_tugas_id', editId)
+        if (delErr) throw delErr
+
         const assignments = selectedToko.map((tokoId, i) => ({
           sesi_tugas_id: editId, toko_id: tokoId, urutan: i + 1,
           alokasi_koin: parseInt(tokoAlokasi[tokoId]) || 0,
         }))
-        await supabase.from('toko_assignment').insert(assignments)
+        const { error: insErr } = await supabaseAdmin.from('toko_assignment').insert(assignments)
+        if (insErr) throw insErr
 
         toast({ title: isDraft ? 'Draft diperbarui' : 'Dikirim ke Manager', variant: 'success' })
       } else {
@@ -236,13 +240,15 @@ export default function BuatSesi() {
         }).select().single()
         if (sesiErr) throw sesiErr
 
-        await supabase.from('modal_koin').insert({ sesi_tugas_id: sesiData.id, ...modal })
+        const { error: modalErr } = await supabase.from('modal_koin').insert({ sesi_tugas_id: sesiData.id, ...modal })
+        if (modalErr) throw modalErr
 
         const assignments = selectedToko.map((tokoId, i) => ({
           sesi_tugas_id: sesiData.id, toko_id: tokoId, urutan: i + 1,
           alokasi_koin: parseInt(tokoAlokasi[tokoId]) || 0,
         }))
-        await supabase.from('toko_assignment').insert(assignments)
+        const { error: assignErr } = await supabase.from('toko_assignment').insert(assignments)
+        if (assignErr) throw assignErr
 
         toast({ title: isDraft ? 'Draft tersimpan' : 'Dikirim ke Manager', description: 'Sesi tugas berhasil dibuat', variant: 'success' })
       }

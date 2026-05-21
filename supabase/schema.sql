@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   id         UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   nik        TEXT        UNIQUE NOT NULL,
   name       TEXT        NOT NULL,
-  role       TEXT        NOT NULL CHECK (role IN ('superadmin','admin','manager','kasir','driver')),
+  role       TEXT[]      NOT NULL CHECK (role <@ ARRAY['superadmin','admin','manager','kasir','driver']::text[]),
   is_active  BOOLEAN     DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -231,65 +231,67 @@ ALTER TABLE stok_gudang_log  ENABLE ROW LEVEL SECURITY;
 
 -- Helper function: get current user's role
 CREATE OR REPLACE FUNCTION get_my_role()
-RETURNS TEXT AS $$
+RETURNS TEXT[] AS $$
   SELECT role FROM public.users WHERE id = auth.uid()
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- USERS: all authenticated can read; only superadmin can write
 CREATE POLICY "users_select" ON users FOR SELECT TO authenticated USING (true);
-CREATE POLICY "users_insert" ON users FOR INSERT TO authenticated WITH CHECK (get_my_role() = 'superadmin');
-CREATE POLICY "users_update" ON users FOR UPDATE TO authenticated USING (get_my_role() = 'superadmin');
+CREATE POLICY "users_insert" ON users FOR INSERT TO authenticated WITH CHECK ('superadmin' = ANY (get_my_role()));
+CREATE POLICY "users_update" ON users FOR UPDATE TO authenticated USING ('superadmin' = ANY (get_my_role()));
 
 -- TOKO: all authenticated can read; admin can write
 CREATE POLICY "toko_select" ON toko FOR SELECT TO authenticated USING (true);
-CREATE POLICY "toko_insert" ON toko FOR INSERT TO authenticated WITH CHECK (get_my_role() IN ('admin','superadmin'));
-CREATE POLICY "toko_update" ON toko FOR UPDATE TO authenticated USING (get_my_role() IN ('admin','superadmin'));
+CREATE POLICY "toko_insert" ON toko FOR INSERT TO authenticated WITH CHECK (get_my_role() && ARRAY['admin','superadmin']::text[]);
+CREATE POLICY "toko_update" ON toko FOR UPDATE TO authenticated USING (get_my_role() && ARRAY['admin','superadmin']::text[]);
 
 -- MOBIL: all authenticated can read; admin can write
 CREATE POLICY "mobil_select" ON mobil FOR SELECT TO authenticated USING (true);
-CREATE POLICY "mobil_insert" ON mobil FOR INSERT TO authenticated WITH CHECK (get_my_role() IN ('admin','superadmin'));
-CREATE POLICY "mobil_update" ON mobil FOR UPDATE TO authenticated USING (get_my_role() IN ('admin','superadmin'));
+CREATE POLICY "mobil_insert" ON mobil FOR INSERT TO authenticated WITH CHECK (get_my_role() && ARRAY['admin','superadmin']::text[]);
+CREATE POLICY "mobil_update" ON mobil FOR UPDATE TO authenticated USING (get_my_role() && ARRAY['admin','superadmin']::text[]);
 
 -- STOK GUDANG: admin/manager can read; admin can write
-CREATE POLICY "stok_select" ON stok_gudang FOR SELECT TO authenticated USING (get_my_role() IN ('admin','manager','superadmin'));
-CREATE POLICY "stok_update" ON stok_gudang FOR UPDATE TO authenticated USING (get_my_role() IN ('admin','superadmin'));
-CREATE POLICY "stok_log_select" ON stok_gudang_log FOR SELECT TO authenticated USING (get_my_role() IN ('admin','manager','superadmin'));
+CREATE POLICY "stok_select" ON stok_gudang FOR SELECT TO authenticated USING (get_my_role() && ARRAY['admin','manager','superadmin']::text[]);
+CREATE POLICY "stok_update" ON stok_gudang FOR UPDATE TO authenticated USING (get_my_role() && ARRAY['admin','superadmin']::text[]);
+CREATE POLICY "stok_log_select" ON stok_gudang_log FOR SELECT TO authenticated USING (get_my_role() && ARRAY['admin','manager','superadmin']::text[]);
 CREATE POLICY "stok_log_insert" ON stok_gudang_log FOR INSERT TO authenticated WITH CHECK (true);
 
 -- SESI TUGAS: admin/manager see all; kasir sees own
 CREATE POLICY "sesi_select_admin"  ON sesi_tugas FOR SELECT TO authenticated
-  USING (get_my_role() IN ('admin','manager','superadmin'));
+  USING (get_my_role() && ARRAY['admin','manager','superadmin']::text[]);
 CREATE POLICY "sesi_select_kasir"  ON sesi_tugas FOR SELECT TO authenticated
   USING (kasir_id = auth.uid());
 CREATE POLICY "sesi_insert"        ON sesi_tugas FOR INSERT TO authenticated
-  WITH CHECK (get_my_role() IN ('admin','superadmin'));
+  WITH CHECK (get_my_role() && ARRAY['admin','superadmin']::text[]);
 CREATE POLICY "sesi_update_admin"  ON sesi_tugas FOR UPDATE TO authenticated
-  USING (get_my_role() IN ('admin','manager','superadmin'));
+  USING (get_my_role() && ARRAY['admin','manager','superadmin']::text[]);
 
 -- MODAL KOIN: follow sesi_tugas access
 CREATE POLICY "modal_select" ON modal_koin FOR SELECT TO authenticated USING (true);
-CREATE POLICY "modal_insert" ON modal_koin FOR INSERT TO authenticated WITH CHECK (get_my_role() IN ('admin','superadmin'));
+CREATE POLICY "modal_insert" ON modal_koin FOR INSERT TO authenticated WITH CHECK (get_my_role() && ARRAY['admin','superadmin']::text[]);
+CREATE POLICY "modal_update" ON modal_koin FOR UPDATE TO authenticated USING (get_my_role() && ARRAY['admin','superadmin']::text[]);
 
--- TOKO ASSIGNMENT: admin/manager/kasir can read; kasir updates own; admin inserts
+-- TOKO ASSIGNMENT: admin/manager/kasir can read; kasir updates own; admin inserts; admin deletes
 CREATE POLICY "assign_select" ON toko_assignment FOR SELECT TO authenticated USING (true);
-CREATE POLICY "assign_insert" ON toko_assignment FOR INSERT TO authenticated WITH CHECK (get_my_role() IN ('admin','superadmin'));
+CREATE POLICY "assign_insert" ON toko_assignment FOR INSERT TO authenticated WITH CHECK (get_my_role() && ARRAY['admin','superadmin']::text[]);
 CREATE POLICY "assign_update" ON toko_assignment FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "assign_delete" ON toko_assignment FOR DELETE TO authenticated USING (get_my_role() && ARRAY['admin','superadmin']::text[]);
 
 -- TRANSAKSI: admin/manager see all; kasir inserts/sees own
 CREATE POLICY "trx_select_admin" ON transaksi FOR SELECT TO authenticated
-  USING (get_my_role() IN ('admin','manager','superadmin'));
+  USING (get_my_role() && ARRAY['admin','manager','superadmin']::text[]);
 CREATE POLICY "trx_select_kasir" ON transaksi FOR SELECT TO authenticated
   USING (kasir_id = auth.uid());
 CREATE POLICY "trx_insert"       ON transaksi FOR INSERT TO authenticated
-  WITH CHECK (get_my_role() IN ('kasir','admin','superadmin'));
+  WITH CHECK (get_my_role() && ARRAY['kasir','admin','superadmin']::text[]);
 
 -- REKONSILIASI: admin/manager see all; kasir inserts/sees own
 CREATE POLICY "rek_select_admin" ON rekonsiliasi FOR SELECT TO authenticated
-  USING (get_my_role() IN ('admin','manager','superadmin'));
+  USING (get_my_role() && ARRAY['admin','manager','superadmin']::text[]);
 CREATE POLICY "rek_select_kasir" ON rekonsiliasi FOR SELECT TO authenticated
   USING (kasir_id = auth.uid());
 CREATE POLICY "rek_insert"       ON rekonsiliasi FOR INSERT TO authenticated
-  WITH CHECK (get_my_role() = 'kasir');
+  WITH CHECK ('kasir' = ANY (get_my_role()));
 
 -- ============================================================
 -- REALTIME

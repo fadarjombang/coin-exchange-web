@@ -15,7 +15,7 @@ ALTER TABLE stok_gudang_log ADD COLUMN IF NOT EXISTS delta_uang_100000 BIGINT DE
 -- 5. Update policy agar admin bisa insert transaksi (tanpa drop function)
 DROP POLICY IF EXISTS "trx_insert" ON transaksi;
 CREATE POLICY "trx_insert" ON transaksi FOR INSERT TO authenticated
-  WITH CHECK (get_my_role() IN ('kasir','admin','superadmin'));
+  WITH CHECK (get_my_role() && ARRAY['kasir','admin','superadmin']::text[]);
 
 -- 6. Set default value for existing rows
 UPDATE transaksi SET jenis = 'field' WHERE jenis IS NULL;
