@@ -30,6 +30,7 @@ export default function Login() {
     setLoading(true)
     try {
       await signIn(nik.trim(), password)
+      await new Promise((r) => setTimeout(r, 600))
       navigate(from || '/', { replace: true })
     } catch (err) {
       if (err.message?.includes('Invalid login credentials')) {

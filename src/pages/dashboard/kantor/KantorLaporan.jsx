@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Loader2, Download, Search, Building, Coins, Banknote } from 'lucide-react'
-import { formatRupiah, formatNumber, DENOM_LIST, UANG_LIST } from '@/lib/utils'
+import { formatRupiah } from '@/lib/utils'
 
 function DateRangeFilter({ from, to, onFrom, onTo, onSearch, loading }) {
   return (
@@ -21,10 +21,7 @@ function DateRangeFilter({ from, to, onFrom, onTo, onSearch, loading }) {
 
 export default function KantorLaporan() {
   const today = new Date().toISOString().split('T')[0]
-  const [from, setFrom] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 30)
-    return d.toISOString().split('T')[0]
-  })
+  const [from, setFrom] = useState(today)
   const [to, setTo] = useState(today)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState([])
@@ -48,21 +45,14 @@ export default function KantorLaporan() {
   const totalUang = data.reduce((sum, t) => sum + (t.total_uang_diterima || 0), 0)
 
   const handleExport = () => {
-    const header = [
-      'Tanggal', 'Kode Toko', 'Nama Toko', 'Area', 
-      'Total Koin Keluar', ...DENOM_LIST.map(d => d.value),
-      'Total Uang Masuk', ...UANG_LIST.map(u => u.value),
-      'Admin'
-    ]
+    const header = ['Tanggal', 'Kode Toko', 'Nama Toko', 'Area', 'Total Koin Keluar', 'Total Uang Masuk', 'Admin']
     const rows = data.map(t => [
       new Date(t.tanggal_waktu).toLocaleString('id-ID'),
       t.toko?.kode_toko,
       t.toko?.nama_toko,
       t.toko?.area || '-',
       t.total_koin_nilai,
-      ...DENOM_LIST.map(d => t[d.key] || 0),
       t.total_uang_diterima,
-      ...UANG_LIST.map(u => t[u.key] || 0),
       t.kasir?.name
     ])
     const csv = [header, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
@@ -142,49 +132,29 @@ export default function KantorLaporan() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">Tanggal</TableHead>
-                  <TableHead className="whitespace-nowrap">Toko</TableHead>
-                  <TableHead className="text-right font-bold text-amber-600 bg-amber-50/50 whitespace-nowrap">Total Koin</TableHead>
-                  {DENOM_LIST.map(d => (
-                    <TableHead key={d.key} className="text-right text-xs bg-amber-50/20 whitespace-nowrap">{d.label.replace('Rp ', '')}</TableHead>
-                  ))}
-                  <TableHead className="text-right font-bold text-green-600 bg-green-50/50 whitespace-nowrap">Total Uang</TableHead>
-                  {UANG_LIST.map(u => (
-                    <TableHead key={u.key} className="text-right text-xs bg-green-50/20 whitespace-nowrap">{u.label.replace('Rp ', '')}</TableHead>
-                  ))}
-                  <TableHead className="whitespace-nowrap">Admin</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Toko</TableHead>
+                  <TableHead className="text-right">Koin Keluar</TableHead>
+                  <TableHead className="text-right">Uang Masuk</TableHead>
+                  <TableHead>Admin</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={15} className="text-center py-8"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
                 ) : data.length === 0 ? (
-                  <TableRow><TableCell colSpan={15} className="text-center py-12 text-muted-foreground">Tidak ada transaksi</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Tidak ada transaksi</TableCell></TableRow>
                 ) : (
                   data.map(t => (
                     <TableRow key={t.id}>
-                      <TableCell className="text-sm whitespace-nowrap">{new Date(t.tanggal_waktu).toLocaleString('id-ID')}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <p className="font-medium text-sm">{t.toko?.nama_toko}</p>
+                      <TableCell className="text-sm">{new Date(t.tanggal_waktu).toLocaleString('id-ID')}</TableCell>
+                      <TableCell>
+                        <p className="font-medium">{t.toko?.nama_toko}</p>
                         <p className="text-xs text-muted-foreground">{t.toko?.kode_toko} · {t.toko?.area}</p>
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-amber-700 bg-amber-50/30 whitespace-nowrap">
-                        {formatRupiah(t.total_koin_nilai)}
-                      </TableCell>
-                      {DENOM_LIST.map(d => (
-                        <TableCell key={d.key} className="text-right font-mono text-xs text-muted-foreground bg-amber-50/10 whitespace-nowrap">
-                          {t[d.key] > 0 ? formatNumber(t[d.key]).replace(/Rp\s?/, '') : '-'}
-                        </TableCell>
-                      ))}
-                      <TableCell className="text-right font-semibold text-green-700 bg-green-50/30 whitespace-nowrap">
-                        {formatRupiah(t.total_uang_diterima)}
-                      </TableCell>
-                      {UANG_LIST.map(u => (
-                        <TableCell key={u.key} className="text-right font-mono text-xs text-muted-foreground bg-green-50/10 whitespace-nowrap">
-                          {t[u.key] > 0 ? formatNumber(t[u.key]).replace(/Rp\s?/, '') : '-'}
-                        </TableCell>
-                      ))}
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{t.kasir?.name}</TableCell>
+                      <TableCell className="text-right font-medium text-amber-600">{formatRupiah(t.total_koin_nilai)}</TableCell>
+                      <TableCell className="text-right font-medium text-green-600">{formatRupiah(t.total_uang_diterima)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{t.kasir?.name}</TableCell>
                     </TableRow>
                   ))
                 )}

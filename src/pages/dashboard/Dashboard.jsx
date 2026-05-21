@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import DashboardLayout from '@/components/layout/DashboardLayout'
@@ -21,23 +21,18 @@ export default function Dashboard() {
   const [selisihTrxCount, setSelisihTrxCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     setLoading(true)
-    try {
-      const today = new Date().toISOString().split('T')[0]
-      const [stokRes, sesiRes, trxRes] = await Promise.all([
-        supabase.from('stok_gudang').select('*').single(),
-        supabase.from('sesi_tugas').select(`*, kasir:kasir_id(name), driver:driver_id(name), mobil:mobil_id(nopol), toko_assignment(*)`).in('status', ['active','pending_approval','pending_close']),
-        supabase.from('transaksi').select('total_koin_nilai, selisih, created_at, toko:toko_id(area)').gte('created_at', today + 'T00:00:00'),
-      ])
+    const today = new Date().toISOString().split('T')[0]
+    const [stokRes, sesiRes, trxRes] = await Promise.all([
+      supabase.from('stok_gudang').select('*').single(),
+      supabase.from('sesi_tugas').select(`*, kasir:kasir_id(name), driver:driver_id(name), mobil:mobil_id(nopol), toko_assignment(*)`).in('status', ['active','pending_approval','pending_close']),
+      supabase.from('transaksi').select('total_koin_nilai, selisih, created_at, toko:toko_id(area)').gte('created_at', today + 'T00:00:00'),
+    ])
 
-      if (stokRes.error) throw stokRes.error
-      if (sesiRes.error) throw sesiRes.error
-      if (trxRes.error) throw trxRes.error
-
-      const rawStok = stokRes.data || {}
-      const allSesi   = sesiRes.data || []
-      const trxToday  = trxRes.data  || []
+    const rawStok = stokRes.data || {}
+    const allSesi   = sesiRes.data || []
+    const trxToday  = trxRes.data  || []
 
     // 1. Hitung Stok Koin Kritis
     const LIMITS = {
@@ -96,14 +91,10 @@ export default function Dashboard() {
       trxTotal:   trxToday.reduce((s, t) => s + (t.total_koin_nilai || 0), 0),
       pending:    pend.length,
     })
-    } catch (err) {
-      console.error('Dashboard loadData error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+    setLoading(false)
+  }
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { loadData() }, [])
   useRealtime('toko_assignment', null, loadData)
   useRealtime('sesi_tugas', null, loadData)
 

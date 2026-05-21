@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
@@ -73,12 +73,12 @@ export default function KantorTransaksiBaru() {
         updated_by: profile.id,
         last_updated: new Date().toISOString(),
       }
-      const { error: stokErr } = await supabase.from('stok_gudang').update(stokUpdate).eq('id', stok.id)
+      const { error: stokErr } = await supabaseAdmin.from('stok_gudang').update(stokUpdate).eq('id', stok.id)
       if (stokErr) throw new Error('Gagal update stok: ' + stokErr.message)
 
       // Log
       const koinDetail = DENOM_LIST.filter(d => form.koin[d.key] > 0).map(d => `${d.label}: -${formatRupiah(form.koin[d.key])}`).join(', ')
-      await supabase.from('stok_gudang_log').insert({
+      await supabaseAdmin.from('stok_gudang_log').insert({
         tipe: 'penukaran_kantor',
         keterangan: `Penukaran koin kantor - Toko: ${selectedToko?.nama_toko} (${selectedToko?.kode_toko}) | Koin keluar: ${koinDetail || 'tidak ada'}`,
         delta_total: totalUang - totalKoin,
@@ -89,7 +89,7 @@ export default function KantorTransaksiBaru() {
       })
 
       // Insert transaksi kantor
-      const { error: trxErr } = await supabase.from('transaksi').insert({
+      const { error: trxErr } = await supabaseAdmin.from('transaksi').insert({
         toko_id: form.toko_id,
         kasir_id: profile.id,
         tanggal_waktu: new Date().toISOString(),

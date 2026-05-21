@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
-import { adminApi } from '@/lib/adminApi'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
@@ -39,21 +38,15 @@ export default function SesiDetail() {
   const [pdfLoading, setPdfLoading] = useState(false)
 
   const fetchSesi = useCallback(async () => {
-    try {
-      const { data, error } = await supabase.from('sesi_tugas')
-        .select(`*, kasir:kasir_id(name,nik,foto_profil), driver:driver_id(name,nik,foto_profil), mobil:mobil_id(nopol,jenis_kendaraan,warna_mobil),
-          modal_koin(*), toko_assignment(*, toko:toko_id(kode_toko,nama_toko,as,am)),
-          transaksi(*, toko:toko_id(kode_toko,nama_toko)),
-          rekonsiliasi(*)`)
-        .eq('id', id).single()
-      if (error) throw error
-      setSesi(data)
-    } catch (err) {
-      toast({ title: 'Gagal memuat data sesi', description: err.message, variant: 'destructive' })
-    } finally {
-      setLoading(false)
-    }
-  }, [id, toast])
+    const { data } = await supabase.from('sesi_tugas')
+      .select(`*, kasir:kasir_id(name,nik,foto_profil), driver:driver_id(name,nik,foto_profil), mobil:mobil_id(nopol,jenis_kendaraan,warna_mobil),
+        modal_koin(*), toko_assignment(*, toko:toko_id(kode_toko,nama_toko,as,am)),
+        transaksi(*, toko:toko_id(kode_toko,nama_toko)),
+        rekonsiliasi(*)`)
+      .eq('id', id).single()
+    setSesi(data)
+    setLoading(false)
+  }, [id])
 
   useEffect(() => { fetchSesi() }, [fetchSesi])
 
@@ -61,16 +54,16 @@ export default function SesiDetail() {
     setSaving(true)
     try {
       if (dialog === 'approve') {
-        // Fetch modal_koin LANGSUNG dari DB
-        const { data: modalKoin, error: modalErr } = await supabase
+        // Fetch modal_koin LANGSUNG dari DB — jangan pakai sesi.modal_koin (bisa stale/null dari join)
+        const { data: modalKoin, error: modalErr } = await supabaseAdmin
           .from('modal_koin').select('*').eq('sesi_tugas_id', id).single()
         if (modalErr || !modalKoin) throw new Error('Data modal koin tidak ditemukan: ' + (modalErr?.message || 'null'))
 
-        const { data: currentStok, error: stokErr } = await supabase
+        const { data: currentStok, error: stokErr } = await supabaseAdmin
           .from('stok_gudang').select('*').single()
         if (stokErr || !currentStok) throw new Error('Stok gudang tidak ditemukan: ' + stokErr?.message)
 
-        // Safety check — pastikan stok masih cukup
+        // ⚠️ Safety check — pastikan stok masih cukup saat approve (prevent race condition)
         const insufficientDenoms = DENOM_LIST.filter(d => (modalKoin[d.key] || 0) > (currentStok[d.key] || 0))
         if (insufficientDenoms.length > 0) {
           const detail = insufficientDenoms.map(d =>
@@ -79,80 +72,89 @@ export default function SesiDetail() {
           throw new Error(`Stok tidak mencukupi!\n${detail}\n\nKemungkinan sesi lain sudah diapprove lebih dulu. Kurangi modal sesi ini lalu coba lagi.`)
         }
 
+        // Hitung stok baru setelah dikurangi modal
         const updates = DENOM_LIST.reduce((acc, d) => {
           acc[d.key] = Math.max(0, (currentStok[d.key] || 0) - (modalKoin[d.key] || 0))
           return acc
         }, {})
 
+        const { error: updateErr } = await supabaseAdmin.from('stok_gudang')
+          .update({ ...updates, updated_by: profile.id, last_updated: new Date().toISOString() })
+          .eq('id', currentStok.id)
+        if (updateErr) throw new Error('Gagal update stok: ' + updateErr.message)
+
+        // Catat ke log — keluar modal
         const deltaTotal = DENOM_LIST.reduce((sum, d) => sum - (modalKoin[d.key] || 0), 0)
         const denomDetail = DENOM_LIST.filter(d => modalKoin[d.key] > 0)
           .map(d => `${d.label}: ${formatRupiah(modalKoin[d.key])}`).join(' | ')
-
-        await adminApi.approveSession({
-          sesiId: id,
-          currentStokId: currentStok.id,
-          updates,
-          logData: {
-            tipe: 'keluar_modal',
-            keterangan: `Modal diambil oleh kasir — Sesi ${id.slice(0,8)} | ${denomDetail || 'tidak ada modal'}`,
-            sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
-            ...DENOM_LIST.reduce((acc, d) => { acc[`delta_${d.key.replace('koin_', '')}`] = -(modalKoin[d.key] || 0); return acc }, {})
-          },
-          approvedBy: profile.id,
-          catatan,
+        const { error: logErr } = await supabaseAdmin.from('stok_gudang_log').insert({
+          tipe: 'keluar_modal',
+          keterangan: `Modal diambil oleh kasir — Sesi ${id.slice(0,8)} | ${denomDetail || 'tidak ada modal'}`,
+          sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
+          ...DENOM_LIST.reduce((acc, d) => { acc[`delta_${d.key.replace('koin_', '')}`] = -(modalKoin[d.key] || 0); return acc }, {})
         })
+        if (logErr) console.error('Log approve error:', logErr.message)
 
+        await supabase.from('sesi_tugas').update({
+          status: 'active', approved_by: profile.id,
+          approved_at: new Date().toISOString(), catatan_approval: catatan
+        }).eq('id', id)
         const deducted = DENOM_LIST.filter(d => modalKoin[d.key] > 0).map(d => `${d.label}: -${formatRupiah(modalKoin[d.key])}`).join(', ')
         toast({ title: 'Disetujui', description: `Stok gudang dikurangi: ${deducted || '(tidak ada modal)'}`, variant: 'success' })
 
       } else if (dialog === 'reject') {
-        const { error } = await supabase.from('sesi_tugas').update({ status: 'draft', catatan_approval: catatan }).eq('id', id)
-        if (error) throw error
+        await supabase.from('sesi_tugas').update({ status: 'draft', catatan_approval: catatan }).eq('id', id)
         toast({ title: 'Ditolak', description: 'Sesi dikembalikan ke draft.' })
 
       } else if (dialog === 'approve_close') {
-        const { data: rek, error: rekErr } = await supabase
+        // Fetch rekonsiliasi LANGSUNG dari DB
+        const { data: rek, error: rekErr } = await supabaseAdmin
           .from('rekonsiliasi').select('*').eq('sesi_tugas_id', id).single()
         if (rekErr || !rek) throw new Error('Data rekonsiliasi tidak ditemukan: ' + (rekErr?.message || 'null'))
 
-        const { data: currentStok, error: stokErr } = await supabase
+        const { data: currentStok, error: stokErr } = await supabaseAdmin
           .from('stok_gudang').select('*').single()
         if (stokErr || !currentStok) throw new Error('Stok gudang tidak ditemukan: ' + stokErr?.message)
 
+        // Tambah sisa koin ke stok
         const updates = DENOM_LIST.reduce((acc, d) => {
           const sisaKey = `sisa_koin_${d.key.replace('koin_', '')}`
           acc[d.key] = (currentStok[d.key] || 0) + (rek[sisaKey] || 0)
           return acc
         }, {})
 
-        const { data: trxList } = await supabase
+        // Tambah uang besar yang diterima kasir selama sesi ke stok gudang
+        const { data: trxList } = await supabaseAdmin
           .from('transaksi').select('uang_50000, uang_100000').eq('sesi_tugas_id', id)
         const totalUang50k  = (trxList || []).reduce((s, t) => s + (t.uang_50000  || 0), 0)
         const totalUang100k = (trxList || []).reduce((s, t) => s + (t.uang_100000 || 0), 0)
         updates.uang_50000  = (currentStok.uang_50000  || 0) + totalUang50k
         updates.uang_100000 = (currentStok.uang_100000 || 0) + totalUang100k
 
+        const { error: updateErr } = await supabaseAdmin.from('stok_gudang')
+          .update({ ...updates, updated_by: profile.id, last_updated: new Date().toISOString() })
+          .eq('id', currentStok.id)
+        if (updateErr) throw new Error('Gagal update stok: ' + updateErr.message)
+
+        // Catat ke log — masuk sisa koin + uang besar
         const deltaKoin  = DENOM_LIST.reduce((sum, d) => sum + (rek[`sisa_koin_${d.key.replace('koin_','')}` ] || 0), 0)
         const deltaUang  = totalUang50k + totalUang100k
         const deltaTotal = deltaKoin + deltaUang
-
-        await adminApi.closeSession({
-          sesiId: id,
-          currentStokId: currentStok.id,
-          updates,
-          logData: {
-            tipe: 'masuk_sisa',
-            keterangan: `Sesi ditutup — Sisa koin: ${formatRupiah(deltaKoin)} | Uang besar: ${formatRupiah(deltaUang)} | Sesi ${id.slice(0,8)}`,
-            sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
-          },
-          closedBy: profile.id,
-          catatan,
+        const { error: logErr2 } = await supabaseAdmin.from('stok_gudang_log').insert({
+          tipe: 'masuk_sisa',
+          keterangan: `Sesi ditutup — Sisa koin: ${formatRupiah(deltaKoin)} | Uang besar: ${formatRupiah(deltaUang)} | Sesi ${id.slice(0,8)}`,
+          sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
         })
+        if (logErr2) console.error('Log close error:', logErr2.message)
+
+        await supabase.from('sesi_tugas').update({
+          status: 'closed', closed_by: profile.id,
+          closed_at: new Date().toISOString(), catatan_close: catatan
+        }).eq('id', id)
         toast({ title: 'Sesi Ditutup', description: `Koin: +${formatRupiah(deltaKoin)} | Uang besar: +${formatRupiah(deltaUang)}`, variant: 'success' })
 
       } else if (dialog === 'reject_close') {
-        const { error } = await supabase.from('sesi_tugas').update({ status: 'active' }).eq('id', id)
-        if (error) throw error
+        await supabase.from('sesi_tugas').update({ status: 'active' }).eq('id', id)
         if (sesi.rekonsiliasi) await supabase.from('rekonsiliasi').delete().eq('sesi_tugas_id', id)
         toast({ title: 'Ditolak', description: 'Rekonsiliasi ditolak. Kasir harus input ulang.' })
       }
@@ -195,13 +197,12 @@ export default function SesiDetail() {
     setSavingModal(true)
     try {
       // Cek stok efektif (stok - modal pending sesi LAIN, bukan sesi ini)
-      const { data: rawStok, error: stokErr } = await supabase.from('stok_gudang').select('*').single()
-      if (stokErr) throw stokErr
-      const { data: pendingSesiIds } = await supabase.from('sesi_tugas').select('id').eq('status','pending_approval').neq('id', id)
+      const { data: rawStok } = await supabaseAdmin.from('stok_gudang').select('*').single()
+      const { data: pendingSesiIds } = await supabaseAdmin.from('sesi_tugas').select('id').eq('status','pending_approval').neq('id', id)
       const sesiIds = (pendingSesiIds || []).map(s => s.id)
       let reserved = {}
       if (sesiIds.length > 0) {
-        const { data: pendingModal } = await supabase.from('modal_koin').select('*').in('sesi_tugas_id', sesiIds)
+        const { data: pendingModal } = await supabaseAdmin.from('modal_koin').select('*').in('sesi_tugas_id', sesiIds)
         reserved = (pendingModal || []).reduce((acc, m) => {
           DENOM_LIST.forEach(d => { acc[d.key] = (acc[d.key] || 0) + (m[d.key] || 0) })
           return acc
@@ -217,7 +218,8 @@ export default function SesiDetail() {
         }
       }
 
-      const { error } = await supabase.from('modal_koin')
+      // Update modal_koin
+      const { error } = await supabaseAdmin.from('modal_koin')
         .update({ ...modalForm })
         .eq('sesi_tugas_id', id)
       if (error) throw error
