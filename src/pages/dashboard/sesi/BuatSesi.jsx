@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import DashboardLayout from '@/components/layout/DashboardLayout'
@@ -20,6 +20,8 @@ const STEPS = ['Tim & Kendaraan', 'Pilih Toko', 'Modal Koin', 'Review & Submit']
 export default function BuatSesi() {
   const { profile } = useAuth()
   const navigate = useNavigate()
+  const { editId } = useParams()
+  const isEdit = !!editId
   const { toast } = useToast()
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -95,9 +97,35 @@ export default function BuatSesi() {
         DENOM_LIST.forEach(d => { efektif[d.key] = Math.max(0, (rawStok[d.key] || 0) - (reserved[d.key] || 0)) })
         setStokEfektif(efektif)
       }
+
+      // Load existing sesi data jika mode edit
+      if (editId) {
+        const { data: sesi } = await supabase.from('sesi_tugas')
+          .select('*, modal_koin(*), toko_assignment(*, toko:toko_id(id,kode_toko,nama_toko,area))')
+          .eq('id', editId).single()
+        if (sesi) {
+          setTim({
+            tanggal: sesi.tanggal,
+            mobil_id: sesi.mobil_id,
+            kasir_id: sesi.kasir_id,
+            driver_id: sesi.driver_id,
+            nama_polisi: sesi.nama_polisi || '',
+          })
+          const sorted = [...(sesi.toko_assignment || [])].sort((a, b) => a.urutan - b.urutan)
+          setSelectedToko(sorted.map(a => a.toko_id))
+          const alokasi = {}
+          sorted.forEach(a => { alokasi[a.toko_id] = String(a.alokasi_koin || 0) })
+          setTokoAlokasi(alokasi)
+          if (sesi.modal_koin) {
+            const m = {}
+            DENOM_LIST.forEach(d => { m[d.key] = sesi.modal_koin[d.key] || 0 })
+            setModal(m)
+          }
+        }
+      }
     }
     loadMasterData()
-  }, [])
+  }, [editId])
 
   // Modal koin disimpan sebagai nilai rupiah per denom, total = jumlah semua nilai
   const modalTotal = Object.values(modal).reduce((sum, v) => sum + (parseInt(v) || 0), 0)
@@ -178,23 +206,46 @@ export default function BuatSesi() {
   const handleSubmit = async (isDraft) => {
     setSaving(true)
     try {
-      const mobil = mobilList.find((m) => m.id === tim.mobil_id)
-      const { data: sesiData, error: sesiErr } = await supabase.from('sesi_tugas').insert({
-        tanggal: tim.tanggal, mobil_id: tim.mobil_id, kasir_id: tim.kasir_id,
-        driver_id: tim.driver_id, nama_polisi: tim.nama_polisi,
-        status: isDraft ? 'draft' : 'pending_approval', created_by: profile.id,
-      }).select().single()
-      if (sesiErr) throw sesiErr
+      if (isEdit) {
+        // Update existing sesi
+        const { error: sesiErr } = await supabase.from('sesi_tugas').update({
+          tanggal: tim.tanggal, mobil_id: tim.mobil_id, kasir_id: tim.kasir_id,
+          driver_id: tim.driver_id, nama_polisi: tim.nama_polisi,
+          status: isDraft ? 'draft' : 'pending_approval',
+        }).eq('id', editId)
+        if (sesiErr) throw sesiErr
 
-      await supabase.from('modal_koin').insert({ sesi_tugas_id: sesiData.id, ...modal })
+        // Update modal_koin
+        await supabase.from('modal_koin').update({ ...modal }).eq('sesi_tugas_id', editId)
 
-      const assignments = selectedToko.map((tokoId, i) => ({
-        sesi_tugas_id: sesiData.id, toko_id: tokoId, urutan: i + 1,
-        alokasi_koin: parseInt(tokoAlokasi[tokoId]) || 0,
-      }))
-      await supabase.from('toko_assignment').insert(assignments)
+        // Replace toko_assignment: hapus lama, insert baru
+        await supabase.from('toko_assignment').delete().eq('sesi_tugas_id', editId)
+        const assignments = selectedToko.map((tokoId, i) => ({
+          sesi_tugas_id: editId, toko_id: tokoId, urutan: i + 1,
+          alokasi_koin: parseInt(tokoAlokasi[tokoId]) || 0,
+        }))
+        await supabase.from('toko_assignment').insert(assignments)
 
-      toast({ title: isDraft ? 'Draft tersimpan' : 'Dikirim ke Manager', description: 'Sesi tugas berhasil dibuat', variant: 'success' })
+        toast({ title: isDraft ? 'Draft diperbarui' : 'Dikirim ke Manager', variant: 'success' })
+      } else {
+        // Create new sesi
+        const { data: sesiData, error: sesiErr } = await supabase.from('sesi_tugas').insert({
+          tanggal: tim.tanggal, mobil_id: tim.mobil_id, kasir_id: tim.kasir_id,
+          driver_id: tim.driver_id, nama_polisi: tim.nama_polisi,
+          status: isDraft ? 'draft' : 'pending_approval', created_by: profile.id,
+        }).select().single()
+        if (sesiErr) throw sesiErr
+
+        await supabase.from('modal_koin').insert({ sesi_tugas_id: sesiData.id, ...modal })
+
+        const assignments = selectedToko.map((tokoId, i) => ({
+          sesi_tugas_id: sesiData.id, toko_id: tokoId, urutan: i + 1,
+          alokasi_koin: parseInt(tokoAlokasi[tokoId]) || 0,
+        }))
+        await supabase.from('toko_assignment').insert(assignments)
+
+        toast({ title: isDraft ? 'Draft tersimpan' : 'Dikirim ke Manager', description: 'Sesi tugas berhasil dibuat', variant: 'success' })
+      }
       navigate('/dashboard/sesi')
     } catch (err) { toast({ title: 'Gagal', description: err.message, variant: 'destructive' }) }
     finally { setSaving(false) }
@@ -211,7 +262,7 @@ export default function BuatSesi() {
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/sesi')}><ArrowLeft size={18} /></Button>
           <div>
-            <h1 className="page-title flex items-center gap-2"><ClipboardList size={20} /> Buat Sesi Tugas</h1>
+            <h1 className="page-title flex items-center gap-2"><ClipboardList size={20} /> {isEdit ? 'Edit Draft Sesi' : 'Buat Sesi Tugas'}</h1>
             <p className="page-subtitle">Langkah {step + 1} dari {STEPS.length}: {STEPS[step]}</p>
           </div>
         </div>

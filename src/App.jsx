@@ -127,6 +127,11 @@ export default function App() {
               <BuatSesi />
             </ProtectedRoute>
           } />
+          <Route path="/dashboard/sesi/edit/:editId" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <BuatSesi />
+            </ProtectedRoute>
+          } />
           <Route path="/dashboard/sesi/:id" element={
             <ProtectedRoute allowedRoles={['admin', 'manager']}>
               <SesiDetail />
