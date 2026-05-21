@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Loader2, Plus, Building, Coins, Banknote, Search } from 'lucide-react'
-import { formatRupiah, formatDateTime } from '@/lib/utils'
+import { Loader2, Plus, Building, Coins, Banknote, Search, Download } from 'lucide-react'
+import { formatRupiah, formatNumber, formatDateTime, DENOM_LIST, UANG_LIST } from '@/lib/utils'
 
 export default function KantorTransaksi() {
   const { role } = useAuth()
@@ -23,12 +23,14 @@ export default function KantorTransaksi() {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState([])
   const [search, setSearch] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   const loadData = useCallback(async () => {
     setLoading(true)
     const { data: trx } = await supabase
       .from('transaksi')
-      .select('id, tanggal_waktu, total_koin_nilai, total_uang_diterima, toko:toko_id(kode_toko, nama_toko, area)')
+      .select('*, toko:toko_id(kode_toko, nama_toko, area)')
       .eq('jenis', 'kantor')
       .gte('tanggal_waktu', from + 'T00:00:00')
       .lte('tanggal_waktu', to + 'T23:59:59')
@@ -39,6 +41,10 @@ export default function KantorTransaksi() {
 
   useEffect(() => { loadData() }, [loadData])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [from, to, search])
+
   const filtered = data.filter(t =>
     !search ||
     t.toko?.kode_toko?.toLowerCase().includes(search.toLowerCase()) ||
@@ -47,6 +53,41 @@ export default function KantorTransaksi() {
 
   const totalKoin = filtered.reduce((s, t) => s + (t.total_koin_nilai || 0), 0)
   const totalUang = filtered.reduce((s, t) => s + (t.total_uang_diterima || 0), 0)
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedData = filtered.slice(startIndex, startIndex + itemsPerPage)
+
+  const handleExport = () => {
+    const header = [
+      'Tanggal',
+      'Kode Toko',
+      'Nama Toko',
+      'Area',
+      ...DENOM_LIST.map(d => d.value),
+      'Total Koin Keluar',
+      ...UANG_LIST.map(u => u.value),
+      'Total Uang Masuk'
+    ]
+    const csvRows = filtered.map(t => [
+      formatDateTime(t.tanggal_waktu),
+      t.toko?.kode_toko || '-',
+      t.toko?.nama_toko || '-',
+      t.toko?.area || '-',
+      ...DENOM_LIST.map(d => t[d.key] || 0),
+      t.total_koin_nilai || 0,
+      ...UANG_LIST.map(u => t[u.key] || 0),
+      t.total_uang_diterima || 0
+    ])
+    const csv = [header, ...csvRows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `transaksi_kantor_${from}_${to}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <DashboardLayout>
@@ -62,11 +103,16 @@ export default function KantorTransaksi() {
               <p className="page-subtitle">Riwayat penukaran koin oleh tim toko yang datang ke kantor</p>
             </div>
           </div>
-          {isAdmin && (
-            <Button onClick={() => navigate('/dashboard/kantor/baru')}>
-              <Plus size={16} className="mr-1.5" /> Transaksi Baru
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleExport} disabled={filtered.length === 0}>
+              <Download size={16} className="mr-1.5" /> Export CSV
             </Button>
-          )}
+            {isAdmin && (
+              <Button onClick={() => navigate('/dashboard/kantor/baru')}>
+                <Plus size={16} className="mr-1.5" /> Transaksi Baru
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Summary */}
@@ -144,56 +190,108 @@ export default function KantorTransaksi() {
         {/* Table */}
         <Card>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tanggal & Waktu</TableHead>
-                  <TableHead>Kode Toko</TableHead>
-                  <TableHead>Nama Toko</TableHead>
-                  <TableHead>Area</TableHead>
-                  <TableHead className="text-right">Koin Diserahkan</TableHead>
-                  <TableHead className="text-right">Uang Diterima</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10">
-                      <Loader2 className="animate-spin mx-auto text-primary" />
-                    </TableCell>
+                    <TableHead className="whitespace-nowrap">Tanggal & Waktu</TableHead>
+                    <TableHead className="whitespace-nowrap">Kode Toko</TableHead>
+                    <TableHead className="whitespace-nowrap">Nama Toko</TableHead>
+                    <TableHead className="whitespace-nowrap">Area</TableHead>
+                    {DENOM_LIST.map(d => (
+                      <TableHead key={d.key} className="text-right text-xs bg-amber-50/20 whitespace-nowrap">
+                        {d.label.replace('Rp ', '')}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-right font-bold text-amber-600 bg-amber-50/50 whitespace-nowrap">Total Koin</TableHead>
+                    {UANG_LIST.map(u => (
+                      <TableHead key={u.key} className="text-right text-xs bg-green-50/20 whitespace-nowrap">
+                        {u.label.replace('Rp ', '')}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-right font-bold text-green-600 bg-green-50/50 whitespace-nowrap">Total Uang</TableHead>
                   </TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-14 text-muted-foreground">
-                      Belum ada transaksi kantor pada periode ini
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filtered.map(t => (
-                    <TableRow key={t.id}>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {formatDateTime(t.tanggal_waktu)}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm font-medium">
-                        {t.toko?.kode_toko}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {t.toko?.nama_toko}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {t.toko?.area || '-'}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-amber-600">
-                        {formatRupiah(t.total_koin_nilai)}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-green-600">
-                        {formatRupiah(t.total_uang_diterima)}
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={16} className="text-center py-10">
+                        <Loader2 className="animate-spin mx-auto text-primary" />
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : paginatedData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={16} className="text-center py-14 text-muted-foreground">
+                        Belum ada transaksi kantor pada periode ini
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedData.map(t => (
+                      <TableRow key={t.id}>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatDateTime(t.tanggal_waktu)}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm font-medium">
+                          {t.toko?.kode_toko}
+                        </TableCell>
+                        <TableCell className="font-medium whitespace-nowrap">
+                          {t.toko?.nama_toko}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {t.toko?.area || '-'}
+                        </TableCell>
+                        {DENOM_LIST.map(d => (
+                          <TableCell key={d.key} className="text-right text-xs text-muted-foreground">
+                            {t[d.key] ? formatNumber(t[d.key]) : '-'}
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-right font-semibold text-amber-600 bg-amber-50/10">
+                          {formatRupiah(t.total_koin_nilai)}
+                        </TableCell>
+                        {UANG_LIST.map(u => (
+                          <TableCell key={u.key} className="text-right text-xs text-muted-foreground">
+                            {t[u.key] ? formatNumber(t[u.key]) : '-'}
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-right font-semibold text-green-600 bg-green-50/10">
+                          {formatRupiah(t.total_uang_diterima)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination Controls */}
+            {!loading && totalPages > 1 && (
+              <div className="flex items-center justify-between p-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Menampilkan {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filtered.length)} dari {filtered.length} transaksi
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Sebelumnya
+                  </Button>
+                  <div className="text-xs font-medium px-2">
+                    {currentPage} / {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Berikutnya
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -5,13 +5,13 @@ import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Receipt, Search, Download, Filter } from 'lucide-react'
-import { formatRupiah, formatDateTime, formatDate, todayISO } from '@/lib/utils'
+import { formatRupiah, formatNumber, formatDateTime, formatDate, todayISO, DENOM_LIST, UANG_LIST } from '@/lib/utils'
 
 export default function TransaksiPage() {
   const navigate = useNavigate()
@@ -27,6 +27,10 @@ export default function TransaksiPage() {
     return d.toISOString().split('T')[0]
   })
   const [dateTo, setDateTo] = useState(todayISO())
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   const fetch = useCallback(async () => {
     setLoading(true)
@@ -51,6 +55,10 @@ export default function TransaksiPage() {
       })
   }, [])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, selectedArea, dateFrom, dateTo])
+
   const filtered = rows.filter((r) => {
     const matchesSearch = !search || r.toko?.nama_toko?.toLowerCase().includes(search.toLowerCase())
       || r.toko?.kode_toko?.toLowerCase().includes(search.toLowerCase())
@@ -64,21 +72,43 @@ export default function TransaksiPage() {
   const totalUang  = filtered.reduce((s, r) => s + (r.total_uang_diterima || 0), 0)
   const adaSelisih = filtered.filter((r) => r.selisih !== 0).length
 
+  // Pagination bounds
+  const totalPages = Math.ceil(filtered.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedData = filtered.slice(startIndex, startIndex + itemsPerPage)
+
   const handleExport = () => {
-    const header = ['Tanggal','Toko','Kasir','Koin','Uang','Selisih']
+    const header = [
+      'Tanggal & Waktu',
+      'Kode Toko',
+      'Nama Toko',
+      'Area',
+      'Kasir',
+      ...DENOM_LIST.map(d => d.value),
+      'Total Koin Keluar',
+      ...UANG_LIST.map(u => u.value),
+      'Total Uang Masuk',
+      'Selisih',
+      'PIC Toko'
+    ]
     const csvRows = filtered.map((r) => [
       formatDateTime(r.created_at),
-      `${r.toko?.kode_toko} - ${r.toko?.nama_toko}`,
+      r.toko?.kode_toko || '-',
+      r.toko?.nama_toko || '-',
+      r.toko?.area || '-',
       r.kasir?.name || '-',
-      r.total_koin_nilai,
-      r.total_uang_diterima,
-      r.selisih,
+      ...DENOM_LIST.map(d => r[d.key] || 0),
+      r.total_koin_nilai || 0,
+      ...UANG_LIST.map(u => r[u.key] || 0),
+      r.total_uang_diterima || 0,
+      r.selisih || 0,
+      r.pic_nama || '-'
     ])
-    const csv = [header, ...csvRows].map((r) => r.join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
+    const csv = [header, ...csvRows].map((row) => row.map(v => `"${v}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url  = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url
-    a.download = `transaksi_${dateFrom}_${dateTo}.csv`; a.click()
+    a.download = `transaksi_lapangan_${dateFrom}_${dateTo}.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 
@@ -151,43 +181,102 @@ export default function TransaksiPage() {
         {/* Table */}
         <Card id="tour-trx-table">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Waktu</TableHead>
-                  <TableHead>Toko</TableHead>
-                  <TableHead>Kasir</TableHead>
-                  <TableHead>Koin Diserahkan</TableHead>
-                  <TableHead>Uang Diterima</TableHead>
-                  <TableHead>Selisih</TableHead>
-                  <TableHead>PIC</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? Array.from({length:8}).map((_,i) => (
-                  <TableRow key={i}>{Array.from({length:7}).map((_,j) => <TableCell key={j}><Skeleton className="h-4 w-full"/></TableCell>)}</TableRow>
-                )) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Tidak ada data transaksi pada periode ini</TableCell></TableRow>
-                ) : filtered.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDateTime(r.created_at)}</TableCell>
-                    <TableCell>
-                      <p className="font-mono text-xs text-muted-foreground">{r.toko?.kode_toko}</p>
-                      <p className="font-medium text-sm">{r.toko?.nama_toko}</p>
-                    </TableCell>
-                    <TableCell className="text-sm">{r.kasir?.name || '-'}</TableCell>
-                    <TableCell className="font-medium">{formatRupiah(r.total_koin_nilai)}</TableCell>
-                    <TableCell>{formatRupiah(r.total_uang_diterima)}</TableCell>
-                    <TableCell>
-                      <Badge variant={r.selisih === 0 ? 'success' : 'destructive'}>
-                        {r.selisih === 0 ? '✓ 0' : formatRupiah(r.selisih)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.pic_nama || '-'}</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">Waktu</TableHead>
+                    <TableHead className="whitespace-nowrap">Kode Toko</TableHead>
+                    <TableHead className="whitespace-nowrap">Nama Toko</TableHead>
+                    <TableHead className="whitespace-nowrap">Area</TableHead>
+                    <TableHead className="whitespace-nowrap">Kasir</TableHead>
+                    {DENOM_LIST.map(d => (
+                      <TableHead key={d.key} className="text-right text-xs bg-amber-50/20 whitespace-nowrap">
+                        {d.label.replace('Rp ', '')}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-right font-bold text-amber-600 bg-amber-50/50 whitespace-nowrap">Total Koin</TableHead>
+                    {UANG_LIST.map(u => (
+                      <TableHead key={u.key} className="text-right text-xs bg-green-50/20 whitespace-nowrap">
+                        {u.label.replace('Rp ', '')}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-right font-bold text-green-600 bg-green-50/50 whitespace-nowrap">Total Uang</TableHead>
+                    <TableHead className="whitespace-nowrap">Selisih</TableHead>
+                    <TableHead className="whitespace-nowrap">PIC</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {loading ? Array.from({length:8}).map((_,i) => (
+                    <TableRow key={i}>
+                      {Array.from({length:19}).map((_,j) => <TableCell key={j}><Skeleton className="h-4 w-full"/></TableCell>)}
+                    </TableRow>
+                  )) : paginatedData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={19} className="text-center py-12 text-muted-foreground">
+                        Tidak ada data transaksi pada periode ini
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedData.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDateTime(r.created_at)}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{r.toko?.kode_toko}</TableCell>
+                      <TableCell className="font-medium text-sm whitespace-nowrap">{r.toko?.nama_toko}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{r.toko?.area || '-'}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">{r.kasir?.name || '-'}</TableCell>
+                      {DENOM_LIST.map(d => (
+                        <TableCell key={d.key} className="text-right text-xs text-muted-foreground">
+                          {r[d.key] ? formatNumber(r[d.key]) : '-'}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-right font-semibold text-amber-600 bg-amber-50/10">{formatRupiah(r.total_koin_nilai)}</TableCell>
+                      {UANG_LIST.map(u => (
+                        <TableCell key={u.key} className="text-right text-xs text-muted-foreground">
+                          {r[u.key] ? formatNumber(r[u.key]) : '-'}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-right font-semibold text-green-600 bg-green-50/10">{formatRupiah(r.total_uang_diterima)}</TableCell>
+                      <TableCell>
+                        <Badge variant={r.selisih === 0 ? 'success' : 'destructive'}>
+                          {r.selisih === 0 ? '✓ 0' : formatRupiah(r.selisih)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{r.pic_nama || '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination Controls */}
+            {!loading && totalPages > 1 && (
+              <div className="flex items-center justify-between p-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Menampilkan {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filtered.length)} dari {filtered.length} transaksi
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Sebelumnya
+                  </Button>
+                  <div className="text-xs font-medium px-2">
+                    {currentPage} / {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Berikutnya
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
