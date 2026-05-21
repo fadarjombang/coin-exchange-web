@@ -1,57 +1,64 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Toaster } from './components/ui/toaster'
 import TourGuide from './components/TourGuide'
+import { Loader2 } from 'lucide-react'
 
-// Pages
+// Eager-loaded (small, always needed)
 import Login from './pages/Login'
+import NotFound from './pages/NotFound'
 
-// Superadmin
-import UserList from './pages/superadmin/UserList'
-import UserForm from './pages/superadmin/UserForm'
+// Lazy-loaded by role group — reduces initial bundle
+const UserList          = lazy(() => import('./pages/superadmin/UserList'))
+const UserForm          = lazy(() => import('./pages/superadmin/UserForm'))
 
-// Dashboard (Admin + Manager)
-import Dashboard from './pages/dashboard/Dashboard'
-import TokoList from './pages/dashboard/toko/TokoList'
-import TokoForm from './pages/dashboard/toko/TokoForm'
-import TokoRiwayat from './pages/dashboard/toko/TokoRiwayat'
-import MobilList from './pages/dashboard/mobil/MobilList'
-import StokGudang from './pages/dashboard/stok/StokGudang'
-import SesiList from './pages/dashboard/sesi/SesiList'
-import SesiDetail from './pages/dashboard/sesi/SesiDetail'
-import BuatSesi from './pages/dashboard/sesi/BuatSesi'
-import Laporan from './pages/dashboard/laporan/Laporan'
-import TransaksiPage from './pages/dashboard/transaksi/TransaksiPage'
+const Dashboard         = lazy(() => import('./pages/dashboard/Dashboard'))
+const TokoList          = lazy(() => import('./pages/dashboard/toko/TokoList'))
+const TokoForm          = lazy(() => import('./pages/dashboard/toko/TokoForm'))
+const TokoRiwayat       = lazy(() => import('./pages/dashboard/toko/TokoRiwayat'))
+const MobilList         = lazy(() => import('./pages/dashboard/mobil/MobilList'))
+const StokGudang        = lazy(() => import('./pages/dashboard/stok/StokGudang'))
+const SesiList          = lazy(() => import('./pages/dashboard/sesi/SesiList'))
+const SesiDetail        = lazy(() => import('./pages/dashboard/sesi/SesiDetail'))
+const BuatSesi          = lazy(() => import('./pages/dashboard/sesi/BuatSesi'))
+const Laporan           = lazy(() => import('./pages/dashboard/laporan/Laporan'))
+const TransaksiPage     = lazy(() => import('./pages/dashboard/transaksi/TransaksiPage'))
+const KantorTransaksi   = lazy(() => import('./pages/dashboard/kantor/KantorTransaksi'))
+const KantorTransaksiBaru = lazy(() => import('./pages/dashboard/kantor/KantorTransaksiBaru'))
+const KantorLaporan     = lazy(() => import('./pages/dashboard/kantor/KantorLaporan'))
 
-// Kasir Mobile App
-import AppHome from './pages/app/Home'
-import AppTokoList from './pages/app/TokoList'
-import TransaksiForm from './pages/app/TransaksiForm'
-import TransaksiPreview from './pages/app/TransaksiPreview'
-import Riwayat from './pages/app/Riwayat'
-import TransaksiDetail from './pages/app/TransaksiDetail'
-import Rekonsiliasi from './pages/app/Rekonsiliasi'
-import AppProfil from './pages/app/Profil'
+const AppHome           = lazy(() => import('./pages/app/Home'))
+const AppTokoList       = lazy(() => import('./pages/app/TokoList'))
+const TransaksiForm     = lazy(() => import('./pages/app/TransaksiForm'))
+const TransaksiPreview  = lazy(() => import('./pages/app/TransaksiPreview'))
+const Riwayat           = lazy(() => import('./pages/app/Riwayat'))
+const TransaksiDetail   = lazy(() => import('./pages/app/TransaksiDetail'))
+const Rekonsiliasi      = lazy(() => import('./pages/app/Rekonsiliasi'))
+const AppProfil         = lazy(() => import('./pages/app/Profil'))
 
-// Dashboard - Kantor
-import KantorTransaksi from './pages/dashboard/kantor/KantorTransaksi'
-import KantorTransaksiBaru from './pages/dashboard/kantor/KantorTransaksiBaru'
-
-// Layout guards
 import ProtectedRoute from './components/layout/ProtectedRoute'
+
+function PageFallback() {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-background">
+      <Loader2 className="animate-spin w-8 h-8 text-primary" />
+    </div>
+  )
+}
 
 function RoleRedirect() {
   const { role, isAuthenticated, loading } = useAuth()
   if (loading) return null
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  
+
   const roles = Array.isArray(role) ? role : [role]
-  
+
   if (roles.includes('superadmin')) return <Navigate to="/superadmin" replace />
   if (roles.includes('admin') || roles.includes('manager')) return <Navigate to="/dashboard" replace />
   if (roles.includes('kasir')) return <Navigate to="/app" replace />
   if (roles.includes('driver')) return <Navigate to="/login" replace />
-  
+
   return <Navigate to="/login" replace />
 }
 
@@ -59,144 +66,100 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* Public */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<RoleRedirect />} />
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            {/* Public */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<RoleRedirect />} />
 
-          {/* Super Admin */}
-          <Route path="/superadmin" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <UserList />
-            </ProtectedRoute>
-          } />
-          <Route path="/superadmin/tambah" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <UserForm />
-            </ProtectedRoute>
-          } />
-          <Route path="/superadmin/edit/:id" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <UserForm />
-            </ProtectedRoute>
-          } />
+            {/* Super Admin */}
+            <Route path="/superadmin" element={
+              <ProtectedRoute allowedRoles={['superadmin']}><UserList /></ProtectedRoute>
+            } />
+            <Route path="/superadmin/tambah" element={
+              <ProtectedRoute allowedRoles={['superadmin']}><UserForm /></ProtectedRoute>
+            } />
+            <Route path="/superadmin/edit/:id" element={
+              <ProtectedRoute allowedRoles={['superadmin']}><UserForm /></ProtectedRoute>
+            } />
 
-          {/* Dashboard — Admin & Manager */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/toko" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <TokoList />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/toko/tambah" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <TokoForm />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/toko/edit/:id" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <TokoForm />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/toko/:id/riwayat" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <TokoRiwayat />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/mobil" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <MobilList />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/stok" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <StokGudang />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/sesi" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <SesiList />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/sesi/buat" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <BuatSesi />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/sesi/:id" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <SesiDetail />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/laporan" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <Laporan />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/kantor" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <KantorTransaksi />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/kantor/baru" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <KantorTransaksiBaru />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/transaksi" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <TransaksiPage />
-            </ProtectedRoute>
-          } />
+            {/* Dashboard — Admin & Manager */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><Dashboard /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/toko" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><TokoList /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/toko/tambah" element={
+              <ProtectedRoute allowedRoles={['admin']}><TokoForm /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/toko/edit/:id" element={
+              <ProtectedRoute allowedRoles={['admin']}><TokoForm /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/toko/:id/riwayat" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><TokoRiwayat /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/mobil" element={
+              <ProtectedRoute allowedRoles={['admin']}><MobilList /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/stok" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><StokGudang /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/sesi" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><SesiList /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/sesi/buat" element={
+              <ProtectedRoute allowedRoles={['admin']}><BuatSesi /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/sesi/:id" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><SesiDetail /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/laporan" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><Laporan /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/kantor" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><KantorTransaksi /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/kantor/baru" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><KantorTransaksiBaru /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/kantor/laporan" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><KantorLaporan /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/transaksi" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}><TransaksiPage /></ProtectedRoute>
+            } />
 
-          {/* Kasir Mobile App */}
-          <Route path="/app" element={
-            <ProtectedRoute allowedRoles={['kasir']}>
-              <AppHome />
-            </ProtectedRoute>
-          } />
-          <Route path="/app/toko" element={
-            <ProtectedRoute allowedRoles={['kasir']}>
-              <AppTokoList />
-            </ProtectedRoute>
-          } />
-          <Route path="/app/toko/:assignmentId/transaksi" element={
-            <ProtectedRoute allowedRoles={['kasir']}>
-              <TransaksiForm />
-            </ProtectedRoute>
-          } />
-          <Route path="/app/toko/:assignmentId/preview" element={
-            <ProtectedRoute allowedRoles={['kasir']}>
-              <TransaksiPreview />
-            </ProtectedRoute>
-          } />
-          <Route path="/app/riwayat" element={
-            <ProtectedRoute allowedRoles={['kasir']}>
-              <Riwayat />
-            </ProtectedRoute>
-          } />
-          <Route path="/app/riwayat/:transaksiId" element={
-            <ProtectedRoute allowedRoles={['kasir']}>
-              <TransaksiDetail />
-            </ProtectedRoute>
-          } />
-          <Route path="/app/rekonsiliasi" element={
-            <ProtectedRoute allowedRoles={['kasir']}>
-              <Rekonsiliasi />
-            </ProtectedRoute>
-          } />
-          <Route path="/app/profil" element={
-            <ProtectedRoute allowedRoles={['kasir']}>
-              <AppProfil />
-            </ProtectedRoute>
-          } />
+            {/* Kasir Mobile App */}
+            <Route path="/app" element={
+              <ProtectedRoute allowedRoles={['kasir']}><AppHome /></ProtectedRoute>
+            } />
+            <Route path="/app/toko" element={
+              <ProtectedRoute allowedRoles={['kasir']}><AppTokoList /></ProtectedRoute>
+            } />
+            <Route path="/app/toko/:assignmentId/transaksi" element={
+              <ProtectedRoute allowedRoles={['kasir']}><TransaksiForm /></ProtectedRoute>
+            } />
+            <Route path="/app/toko/:assignmentId/preview" element={
+              <ProtectedRoute allowedRoles={['kasir']}><TransaksiPreview /></ProtectedRoute>
+            } />
+            <Route path="/app/riwayat" element={
+              <ProtectedRoute allowedRoles={['kasir']}><Riwayat /></ProtectedRoute>
+            } />
+            <Route path="/app/riwayat/:transaksiId" element={
+              <ProtectedRoute allowedRoles={['kasir']}><TransaksiDetail /></ProtectedRoute>
+            } />
+            <Route path="/app/rekonsiliasi" element={
+              <ProtectedRoute allowedRoles={['kasir']}><Rekonsiliasi /></ProtectedRoute>
+            } />
+            <Route path="/app/profil" element={
+              <ProtectedRoute allowedRoles={['kasir']}><AppProfil /></ProtectedRoute>
+            } />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
         <TourGuide />
         <Toaster />
       </AuthProvider>

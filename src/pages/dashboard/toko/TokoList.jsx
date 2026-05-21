@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Store, Plus, Search, History, Upload, Loader2, Download } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { supabaseAdmin } from '@/lib/supabase'
 
 export default function TokoList() {
   const navigate  = useNavigate()
@@ -25,10 +24,16 @@ export default function TokoList() {
 
   const fetch = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase.from('toko').select('*').order('kode_toko')
-    setToko(data || [])
-    setLoading(false)
-  }, [])
+    try {
+      const { data, error } = await supabase.from('toko').select('*').order('kode_toko')
+      if (error) throw error
+      setToko(data || [])
+    } catch (err) {
+      toast({ title: 'Gagal memuat data toko', description: err.message, variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
   useEffect(() => { fetch() }, [fetch])
 
   useEffect(() => {
@@ -61,7 +66,7 @@ export default function TokoList() {
         return
       }
 
-      const { error } = await supabaseAdmin.from('toko').upsert(rows, { onConflict: 'kode_toko' })
+      const { error } = await supabase.from('toko').upsert(rows, { onConflict: 'kode_toko' })
       if (error) throw error
 
       toast({ title: `${rows.length} toko berhasil diimpor`, variant: 'success' })

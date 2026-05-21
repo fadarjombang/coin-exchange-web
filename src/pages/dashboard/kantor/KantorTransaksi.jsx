@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Loader2, Plus, Building, Coins, Banknote, Search } from 'lucide-react'
-import { formatRupiah, formatDateTime } from '@/lib/utils'
+import { Loader2, Plus, Building, Coins, Banknote, Search, Download } from 'lucide-react'
+import { formatRupiah, formatDateTime, formatNumber, DENOM_LIST, UANG_LIST } from '@/lib/utils'
 
 export default function KantorTransaksi() {
   const { role } = useAuth()
@@ -18,7 +18,10 @@ export default function KantorTransaksi() {
 
   const navigate = useNavigate()
   const today = new Date().toISOString().split('T')[0]
-  const [from, setFrom] = useState(today)
+  const [from, setFrom] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 30)
+    return d.toISOString().split('T')[0]
+  })
   const [to, setTo] = useState(today)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState([])
@@ -28,7 +31,7 @@ export default function KantorTransaksi() {
     setLoading(true)
     const { data: trx } = await supabase
       .from('transaksi')
-      .select('id, tanggal_waktu, total_koin_nilai, total_uang_diterima, toko:toko_id(kode_toko, nama_toko, area)')
+      .select('*, toko:toko_id(kode_toko, nama_toko, area)')
       .eq('jenis', 'kantor')
       .gte('tanggal_waktu', from + 'T00:00:00')
       .lte('tanggal_waktu', to + 'T23:59:59')
@@ -48,6 +51,32 @@ export default function KantorTransaksi() {
   const totalKoin = filtered.reduce((s, t) => s + (t.total_koin_nilai || 0), 0)
   const totalUang = filtered.reduce((s, t) => s + (t.total_uang_diterima || 0), 0)
 
+  const handleExport = () => {
+    const header = [
+      'Tanggal', 'Kode Toko', 'Nama Toko', 'Area', 
+      'Total Koin Keluar', ...DENOM_LIST.map(d => d.value),
+      'Total Uang Masuk', ...UANG_LIST.map(u => u.value),
+    ]
+    const rows = filtered.map(t => [
+      formatDateTime(t.tanggal_waktu),
+      t.toko?.kode_toko,
+      t.toko?.nama_toko,
+      t.toko?.area || '-',
+      t.total_koin_nilai,
+      ...DENOM_LIST.map(d => t[d.key] || 0),
+      t.total_uang_diterima,
+      ...UANG_LIST.map(u => t[u.key] || 0),
+    ])
+    const csv = [header, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `transaksi_kantor_${from}_${to}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
@@ -62,11 +91,16 @@ export default function KantorTransaksi() {
               <p className="page-subtitle">Riwayat penukaran koin oleh tim toko yang datang ke kantor</p>
             </div>
           </div>
-          {isAdmin && (
-            <Button onClick={() => navigate('/dashboard/kantor/baru')}>
-              <Plus size={16} className="mr-1.5" /> Transaksi Baru
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleExport} disabled={filtered.length === 0}>
+              <Download size={16} className="mr-1.5" /> Export CSV
             </Button>
-          )}
+            {isAdmin && (
+              <Button onClick={() => navigate('/dashboard/kantor/baru')}>
+                <Plus size={16} className="mr-1.5" /> Transaksi Baru
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Summary */}
@@ -147,24 +181,30 @@ export default function KantorTransaksi() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tanggal & Waktu</TableHead>
-                  <TableHead>Kode Toko</TableHead>
-                  <TableHead>Nama Toko</TableHead>
-                  <TableHead>Area</TableHead>
-                  <TableHead className="text-right">Koin Diserahkan</TableHead>
-                  <TableHead className="text-right">Uang Diterima</TableHead>
+                  <TableHead className="whitespace-nowrap">Tanggal & Waktu</TableHead>
+                  <TableHead className="whitespace-nowrap">Kode Toko</TableHead>
+                  <TableHead className="whitespace-nowrap">Nama Toko</TableHead>
+                  <TableHead className="whitespace-nowrap">Area</TableHead>
+                  <TableHead className="text-right font-bold text-amber-600 bg-amber-50/50 whitespace-nowrap">Total Koin</TableHead>
+                  {DENOM_LIST.map(d => (
+                    <TableHead key={d.key} className="text-right text-xs bg-amber-50/20 whitespace-nowrap">{d.label.replace('Rp ', '')}</TableHead>
+                  ))}
+                  <TableHead className="text-right font-bold text-green-600 bg-green-50/50 whitespace-nowrap">Total Uang</TableHead>
+                  {UANG_LIST.map(u => (
+                    <TableHead key={u.key} className="text-right text-xs bg-green-50/20 whitespace-nowrap">{u.label.replace('Rp ', '')}</TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10">
+                    <TableCell colSpan={16} className="text-center py-10">
                       <Loader2 className="animate-spin mx-auto text-primary" />
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-14 text-muted-foreground">
+                    <TableCell colSpan={16} className="text-center py-14 text-muted-foreground">
                       Belum ada transaksi kantor pada periode ini
                     </TableCell>
                   </TableRow>
@@ -174,21 +214,31 @@ export default function KantorTransaksi() {
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {formatDateTime(t.tanggal_waktu)}
                       </TableCell>
-                      <TableCell className="font-mono text-sm font-medium">
+                      <TableCell className="font-mono text-sm font-medium whitespace-nowrap">
                         {t.toko?.kode_toko}
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium whitespace-nowrap">
                         {t.toko?.nama_toko}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {t.toko?.area || '-'}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-amber-600">
+                      <TableCell className="text-right font-semibold text-amber-700 bg-amber-50/30 whitespace-nowrap">
                         {formatRupiah(t.total_koin_nilai)}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-green-600">
+                      {DENOM_LIST.map(d => (
+                        <TableCell key={d.key} className="text-right font-mono text-xs text-muted-foreground bg-amber-50/10 whitespace-nowrap">
+                          {t[d.key] > 0 ? formatNumber(t[d.key]).replace(/Rp\s?/, '') : '-'}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-right font-semibold text-green-700 bg-green-50/30 whitespace-nowrap">
                         {formatRupiah(t.total_uang_diterima)}
                       </TableCell>
+                      {UANG_LIST.map(u => (
+                        <TableCell key={u.key} className="text-right font-mono text-xs text-muted-foreground bg-green-50/10 whitespace-nowrap">
+                          {t[u.key] > 0 ? formatNumber(t[u.key]).replace(/Rp\s?/, '') : '-'}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   ))
                 )}

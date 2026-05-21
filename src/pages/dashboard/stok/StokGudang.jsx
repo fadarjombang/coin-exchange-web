@@ -34,14 +34,20 @@ export default function StokGudang() {
 
   const fetchData = useCallback(async () => {
     setLoading(true)
-    const [s, l] = await Promise.all([
-      supabase.from('stok_gudang').select('*').single(),
-      supabase.from('stok_gudang_log').select('*').order('created_at', { ascending: false }).limit(30),
-    ])
-    if (s.data) { setStok(s.data); setForm(s.data) }
-    setLog(l.data || [])
-    setLoading(false)
-  }, [])
+    try {
+      const [s, l] = await Promise.all([
+        supabase.from('stok_gudang').select('*').single(),
+        supabase.from('stok_gudang_log').select('*').order('created_at', { ascending: false }).limit(30),
+      ])
+      if (s.error) throw s.error
+      if (s.data) { setStok(s.data); setForm(s.data) }
+      setLog(l.data || [])
+    } catch (err) {
+      toast({ title: 'Gagal memuat stok gudang', description: err.message, variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
 
   useEffect(() => { fetchData() }, [fetchData])
 

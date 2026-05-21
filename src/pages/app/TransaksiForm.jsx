@@ -92,16 +92,21 @@ export default function TransaksiForm() {
   const selisih   = totalKoin - totalUang
 
   const loadData = useCallback(async () => {
-    const { data: a } = await supabase.from('toko_assignment')
-      .select('*, toko:toko_id(*), sesi_tugas:sesi_tugas_id(*, modal_koin(*))')
-      .eq('id', assignmentId).single()
-    setAssignment(a)
-    setSesi(a?.sesi_tugas)
-
-    const { data: txList } = await supabase.from('transaksi').select('*').eq('sesi_tugas_id', a?.sesi_tugas_id)
-    setTrxSummary(txList || [])
-    setLoading(false)
-  }, [assignmentId])
+    try {
+      const { data: a, error } = await supabase.from('toko_assignment')
+        .select('*, toko:toko_id(*), sesi_tugas:sesi_tugas_id(*, modal_koin(*))')
+        .eq('id', assignmentId).single()
+      if (error) throw error
+      setAssignment(a)
+      setSesi(a?.sesi_tugas)
+      const { data: txList } = await supabase.from('transaksi').select('*').eq('sesi_tugas_id', a?.sesi_tugas_id)
+      setTrxSummary(txList || [])
+    } catch (err) {
+      toast({ title: 'Gagal memuat data transaksi', description: err.message, variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
+  }, [assignmentId, toast])
 
   useEffect(() => { loadData() }, [loadData])
 

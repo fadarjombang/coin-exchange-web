@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
+import { adminApi } from '@/lib/adminApi'
+import { useImageCompress } from '@/hooks/useImageCompress'
 import { ROLE_LABELS } from '@/lib/utils'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
@@ -11,16 +13,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Loader2, UserPlus, Pencil } from 'lucide-react'
+import { ArrowLeft, Loader2, UserPlus, Pencil, User, Upload } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import imageCompression from 'browser-image-compression'
-import { User, Upload } from 'lucide-react'
 
 export default function UserForm() {
   const { id } = useParams()
   const isEdit = !!id
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { compress } = useImageCompress()
 
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(isEdit)
@@ -31,13 +32,19 @@ export default function UserForm() {
 
   useEffect(() => {
     if (!isEdit) return
-    const fetch = async () => {
-      const { data } = await supabase.from('users').select('*').eq('id', id).single()
-      if (data) setForm((f) => ({ ...f, nik: data.nik, name: data.name, role: data.role, is_active: data.is_active, foto_profil: data.foto_profil || '' }))
-      setFetching(false)
+    const fetchUser = async () => {
+      try {
+        const { data, error } = await supabase.from('users').select('*').eq('id', id).single()
+        if (error) throw error
+        if (data) setForm((f) => ({ ...f, nik: data.nik, name: data.name, role: data.role, is_active: data.is_active, foto_profil: data.foto_profil || '' }))
+      } catch (err) {
+        toast({ title: 'Gagal memuat data user', description: err.message, variant: 'destructive' })
+      } finally {
+        setFetching(false)
+      }
     }
-    fetch()
-  }, [id, isEdit])
+    fetchUser()
+  }, [id, isEdit, toast])
 
   const validate = () => {
     const e = {}
@@ -58,26 +65,22 @@ export default function UserForm() {
     setLoading(true)
     try {
       if (isEdit) {
-        // Update users table
-        const { error } = await supabase.from('users')
-          .update({ name: form.name, role: form.role, is_active: form.is_active, foto_profil: form.foto_profil })
-          .eq('id', id)
-        if (error) throw error
-        // Optionally reset password
-        if (form.password) {
-          await supabaseAdmin.auth.admin.updateUserById(id, { password: form.password })
-        }
+        await adminApi.updateUser(id, {
+          name: form.name,
+          role: form.role,
+          is_active: form.is_active,
+          foto_profil: form.foto_profil,
+          newPassword: form.password || undefined,
+        })
         toast({ title: 'Berhasil', description: 'Akun berhasil diperbarui', variant: 'success' })
       } else {
-        // Create via Supabase Auth admin API
-        const email = `${form.nik}@coin.internal`
-        const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-          email, password: form.password, email_confirm: true,
+        await adminApi.createUser({
+          nik: form.nik,
+          name: form.name,
+          role: form.role,
+          password: form.password,
+          foto_profil: form.foto_profil,
         })
-        if (authErr) throw authErr
-        const { error: dbErr } = await supabase.from('users')
-          .insert({ id: authData.user.id, nik: form.nik, name: form.name, role: form.role, foto_profil: form.foto_profil })
-        if (dbErr) throw dbErr
         toast({ title: 'Berhasil', description: 'Akun berhasil dibuat', variant: 'success' })
       }
       navigate('/superadmin')
@@ -85,6 +88,18 @@ export default function UserForm() {
       toast({ title: 'Gagal', description: err.message, variant: 'destructive' })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      // Use smaller options for profile photo
+      const b64 = await compress(file, { maxSizeMB: 0.04, maxWidthOrHeight: 250 })
+      setForm(f => ({ ...f, foto_profil: b64 }))
+    } catch (err) {
+      toast({ title: 'Gagal kompres foto', description: err.message, variant: 'destructive' })
     }
   }
 
@@ -125,7 +140,7 @@ export default function UserForm() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5" id="user-form">
-              {/* Foto Profil Section */}
+              {/* Foto Profil */}
               <div className="flex flex-col items-center gap-3 pb-2">
                 <Label className="text-sm font-medium self-start">Foto Profil (Untuk Surat Tugas)</Label>
                 <div className="relative group w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center overflow-hidden bg-muted">
@@ -142,21 +157,7 @@ export default function UserForm() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      try {
-                        const options = { maxSizeMB: 0.04, maxWidthOrHeight: 250, useWebWorker: true }
-                        const compressed = await imageCompression(file, options)
-                        const reader = new FileReader()
-                        reader.readAsDataURL(compressed)
-                        reader.onloadend = () => {
-                          setForm(f => ({ ...f, foto_profil: reader.result }))
-                        }
-                      } catch (err) {
-                        toast({ title: 'Gagal kompres foto', description: err.message, variant: 'destructive' })
-                      }
-                    }}
+                    onChange={handlePhotoUpload}
                   />
                 </div>
                 {form.foto_profil && (
@@ -165,6 +166,7 @@ export default function UserForm() {
                   </Button>
                 )}
               </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="nik">NIK Karyawan *</Label>
                 <Input
@@ -198,16 +200,14 @@ export default function UserForm() {
                 <div className={`grid grid-cols-2 gap-3 p-3 border rounded-lg ${errors.role ? 'border-destructive' : 'border-border'}`}>
                   {['admin', 'manager', 'kasir', 'driver'].map((r) => (
                     <label key={r} className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox 
+                      <Checkbox
                         checked={form.role.includes(r)}
                         onCheckedChange={(checked) => {
                           setForm(f => ({
-                            ...f, 
-                            role: checked 
-                              ? [...f.role, r] 
-                              : f.role.filter(x => x !== r)
+                            ...f,
+                            role: checked ? [...f.role, r] : f.role.filter(x => x !== r)
                           }))
-                          setErrors(er => ({...er, role: ''}))
+                          setErrors(er => ({ ...er, role: '' }))
                         }}
                       />
                       <span className="text-sm">{ROLE_LABELS[r]}</span>

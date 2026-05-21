@@ -31,19 +31,23 @@ export default function SesiList() {
 
   const fetchSesi = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('sesi_tugas')
-      .select('*, kasir:kasir_id(name), driver:driver_id(name), mobil:mobil_id(nopol), modal_koin(total_nilai), toko_assignment(id), rekonsiliasi(id)')
-      .order('created_at', { ascending: false })
-      
-    // Map status: Jika aktif tapi sudah ada rekonsiliasi, treat sebagai pending_close
-    const mapped = (data || []).map(s => ({
-      ...s,
-      status: (s.status === 'active' && s.rekonsiliasi) ? 'pending_close' : s.status
-    }))
-    setSesi(mapped)
-    setLoading(false)
-  }, [])
+    try {
+      const { data, error } = await supabase
+        .from('sesi_tugas')
+        .select('*, kasir:kasir_id(name), driver:driver_id(name), mobil:mobil_id(nopol), modal_koin(total_nilai), toko_assignment(id), rekonsiliasi(id)')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      const mapped = (data || []).map(s => ({
+        ...s,
+        status: (s.status === 'active' && s.rekonsiliasi) ? 'pending_close' : s.status
+      }))
+      setSesi(mapped)
+    } catch (err) {
+      toast({ title: 'Gagal memuat sesi', description: err.message, variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
 
   useEffect(() => { fetchSesi() }, [fetchSesi])
 

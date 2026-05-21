@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Receipt, Search, Download, Filter } from 'lucide-react'
-import { formatRupiah, formatDateTime, formatDate, todayISO } from '@/lib/utils'
+import { formatRupiah, formatDateTime, formatDate, todayISO, formatNumber, DENOM_LIST, UANG_LIST } from '@/lib/utils'
 
 export default function TransaksiPage() {
   const navigate = useNavigate()
@@ -65,20 +65,30 @@ export default function TransaksiPage() {
   const adaSelisih = filtered.filter((r) => r.selisih !== 0).length
 
   const handleExport = () => {
-    const header = ['Tanggal','Toko','Kasir','Koin','Uang','Selisih']
+    const header = [
+      'Tanggal', 'Kode Toko', 'Nama Toko', 'Area', 
+      'Total Koin Keluar', ...DENOM_LIST.map(d => d.value),
+      'Total Uang Masuk', ...UANG_LIST.map(u => u.value),
+      'Selisih', 'Kasir', 'PIC Toko'
+    ]
     const csvRows = filtered.map((r) => [
       formatDateTime(r.created_at),
-      `${r.toko?.kode_toko} - ${r.toko?.nama_toko}`,
-      r.kasir?.name || '-',
+      r.toko?.kode_toko,
+      r.toko?.nama_toko,
+      r.toko?.area || '-',
       r.total_koin_nilai,
+      ...DENOM_LIST.map(d => r[d.key] || 0),
       r.total_uang_diterima,
+      ...UANG_LIST.map(u => r[u.key] || 0),
       r.selisih,
+      r.kasir?.name || '-',
+      r.pic_nama || '-',
     ])
-    const csv = [header, ...csvRows].map((r) => r.join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
+    const csv = [header, ...csvRows].map((r) => r.map(v => `"${v}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url  = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url
-    a.download = `transaksi_${dateFrom}_${dateTo}.csv`; a.click()
+    a.download = `transaksi_lapangan_${dateFrom}_${dateTo}.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 
@@ -148,42 +158,57 @@ export default function TransaksiPage() {
           </CardContent>
         </Card>
 
-        {/* Table */}
         <Card id="tour-trx-table">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Waktu</TableHead>
-                  <TableHead>Toko</TableHead>
-                  <TableHead>Kasir</TableHead>
-                  <TableHead>Koin Diserahkan</TableHead>
-                  <TableHead>Uang Diterima</TableHead>
-                  <TableHead>Selisih</TableHead>
-                  <TableHead>PIC</TableHead>
+                  <TableHead className="whitespace-nowrap">Waktu</TableHead>
+                  <TableHead className="whitespace-nowrap">Toko</TableHead>
+                  <TableHead className="whitespace-nowrap">Kasir</TableHead>
+                  <TableHead className="text-right font-bold text-amber-600 bg-amber-50/50 whitespace-nowrap">Total Koin</TableHead>
+                  {DENOM_LIST.map(d => (
+                    <TableHead key={d.key} className="text-right text-xs bg-amber-50/20 whitespace-nowrap">{d.label.replace('Rp ', '')}</TableHead>
+                  ))}
+                  <TableHead className="text-right font-bold text-green-600 bg-green-50/50 whitespace-nowrap">Total Uang</TableHead>
+                  {UANG_LIST.map(u => (
+                    <TableHead key={u.key} className="text-right text-xs bg-green-50/20 whitespace-nowrap">{u.label.replace('Rp ', '')}</TableHead>
+                  ))}
+                  <TableHead className="whitespace-nowrap">Selisih</TableHead>
+                  <TableHead className="whitespace-nowrap">PIC</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? Array.from({length:8}).map((_,i) => (
-                  <TableRow key={i}>{Array.from({length:7}).map((_,j) => <TableCell key={j}><Skeleton className="h-4 w-full"/></TableCell>)}</TableRow>
+                  <TableRow key={i}>{Array.from({length:17}).map((_,j) => <TableCell key={j}><Skeleton className="h-4 w-full"/></TableCell>)}</TableRow>
                 )) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Tidak ada data transaksi pada periode ini</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={17} className="text-center py-12 text-muted-foreground">Tidak ada data transaksi pada periode ini</TableCell></TableRow>
                 ) : filtered.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDateTime(r.created_at)}</TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <p className="font-mono text-xs text-muted-foreground">{r.toko?.kode_toko}</p>
                       <p className="font-medium text-sm">{r.toko?.nama_toko}</p>
                     </TableCell>
-                    <TableCell className="text-sm">{r.kasir?.name || '-'}</TableCell>
-                    <TableCell className="font-medium">{formatRupiah(r.total_koin_nilai)}</TableCell>
-                    <TableCell>{formatRupiah(r.total_uang_diterima)}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-sm whitespace-nowrap">{r.kasir?.name || '-'}</TableCell>
+                    <TableCell className="text-right font-semibold text-amber-700 bg-amber-50/30 whitespace-nowrap">{formatRupiah(r.total_koin_nilai)}</TableCell>
+                    {DENOM_LIST.map(d => (
+                      <TableCell key={d.key} className="text-right font-mono text-xs text-muted-foreground bg-amber-50/10 whitespace-nowrap">
+                        {r[d.key] > 0 ? formatNumber(r[d.key]).replace(/Rp\s?/, '') : '-'}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-right font-semibold text-green-700 bg-green-50/30 whitespace-nowrap">{formatRupiah(r.total_uang_diterima)}</TableCell>
+                    {UANG_LIST.map(u => (
+                      <TableCell key={u.key} className="text-right font-mono text-xs text-muted-foreground bg-green-50/10 whitespace-nowrap">
+                        {r[u.key] > 0 ? formatNumber(r[u.key]).replace(/Rp\s?/, '') : '-'}
+                      </TableCell>
+                    ))}
+                    <TableCell className="whitespace-nowrap">
                       <Badge variant={r.selisih === 0 ? 'success' : 'destructive'}>
                         {r.selisih === 0 ? '✓ 0' : formatRupiah(r.selisih)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.pic_nama || '-'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{r.pic_nama || '-'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
