@@ -113,7 +113,7 @@ export default function Rekonsiliasi() {
 
   const denomAktifSisa = DENOM_LIST.filter(d => sisaDenom[d.key] > 0)
 
-  const canSubmit = photo && !ttdRef.current?.isEmpty()
+  const canSubmit = photo && !ttdRef.current?.isEmpty() && selisihUang === 0
 
   const handleUangChange = (e) => {
     const raw = e.target.value.replace(/\D/g, '')
@@ -424,8 +424,11 @@ export default function Rekonsiliasi() {
           {saving ? 'Mengirim...' : 'Kirim Rekonsiliasi'}
         </Button>
         {!canSubmit && (
-          <p className="text-xs text-muted-foreground text-center pb-4">
-            Lengkapi foto dan tanda tangan
+          <p className="text-xs text-destructive text-center pb-4">
+            {selisihUang !== 0
+              ? `Selisih uang belum 0 — setoran harus ${formatRupiah(totalUangMasuk)}`
+              : 'Lengkapi foto dan tanda tangan'
+            }
           </p>
         )}
       </div>
