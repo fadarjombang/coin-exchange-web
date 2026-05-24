@@ -68,8 +68,10 @@ export default function SesiDetail() {
         toast({ title: 'Sesi Ditutup', description: 'Sesi berhasil ditutup dan stok gudang diperbarui.', variant: 'success' })
 
       } else if (dialog === 'reject_close') {
+        // Hapus rekonsiliasi lama terlebih dahulu (selalu, bukan hanya jika ada di state)
+        await supabase.from('rekonsiliasi').delete().eq('sesi_tugas_id', id)
+        // Kembalikan status sesi ke 'active' agar kasir bisa submit ulang
         await supabase.from('sesi_tugas').update({ status: 'active' }).eq('id', id)
-        if (sesi.rekonsiliasi) await supabase.from('rekonsiliasi').delete().eq('sesi_tugas_id', id)
         toast({ title: 'Ditolak', description: 'Rekonsiliasi ditolak. Kasir harus input ulang.' })
       }
       setDialog(null); setCatatan(''); fetchSesi()
