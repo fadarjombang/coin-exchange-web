@@ -39,7 +39,11 @@ function SignatureCanvas({ label, padRef, canvasRef, onClear, onEnd }) {
       canvas.getContext('2d').scale(ratio, ratio); pad.clear()
     }
     resize()
+    window.addEventListener('resize', resize)
+    window.addEventListener('orientationchange', resize)
     return () => {
+      window.removeEventListener('resize', resize)
+      window.removeEventListener('orientationchange', resize)
       if (onEnd) pad.removeEventListener('endStroke', onEnd)
       pad.off()
     }
@@ -146,28 +150,31 @@ export default function TransaksiForm() {
       const ttdPic   = ttdPicRef.current?.toDataURL('image/png')
       const ttdKasir = ttdKasirRef.current?.toDataURL('image/png')
 
-      // Simpan koin sebagai nilai Rp per denom (bukan qty)
-      const { error } = await supabase.from('transaksi').insert({
-        sesi_tugas_id: assignment.sesi_tugas_id,
-        toko_id: assignment.toko_id,
-        kasir_id: profile.id,
-        ...koin,
-        total_koin_nilai: totalKoin,
-        uang_50000: uang50,
-        uang_100000: uang100,
-        total_uang_diterima: totalUang,
-        selisih: 0,
-        pic_nama: picNama,
-        pic_jabatan: picJabatan,
-        foto_serah_terima: photo,
-        ttd_pic_toko: ttdPic,
-        ttd_kasir: ttdKasir,
+      // Atomic: INSERT transaksi + UPDATE toko_assignment dalam satu transaksi SQL
+      const { error } = await supabase.rpc('submit_field_transaction', {
+        p_assignment_id:     assignmentId,
+        p_sesi_tugas_id:     assignment.sesi_tugas_id,
+        p_toko_id:           assignment.toko_id,
+        p_kasir_id:          profile.id,
+        p_koin_100:          koin.koin_100   || 0,
+        p_koin_200:          koin.koin_200   || 0,
+        p_koin_500:          koin.koin_500   || 0,
+        p_koin_1000:         koin.koin_1000  || 0,
+        p_koin_2000:         koin.koin_2000  || 0,
+        p_koin_5000:         koin.koin_5000  || 0,
+        p_koin_10000:        koin.koin_10000 || 0,
+        p_koin_20000:        koin.koin_20000 || 0,
+        p_total_koin_nilai:  totalKoin,
+        p_uang_50000:        uang50,
+        p_uang_100000:       uang100,
+        p_total_uang:        totalUang,
+        p_pic_nama:          picNama,
+        p_pic_jabatan:       picJabatan,
+        p_foto_serah_terima: photo,
+        p_ttd_pic_toko:      ttdPic,
+        p_ttd_kasir:         ttdKasir,
       })
       if (error) throw error
-
-      await supabase.from('toko_assignment').update({
-        status: 'selesai', updated_at: new Date().toISOString()
-      }).eq('id', assignmentId)
 
       navigate(`/app/toko/${assignmentId}/preview`)
     } catch (err) {

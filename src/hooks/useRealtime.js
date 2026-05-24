@@ -16,7 +16,8 @@ export function useRealtime(table, filter = null, callback, event = '*') {
   useEffect(() => {
     if (!table) return
 
-    const channelName = `${table}-${filter || 'all'}-${Date.now()}`
+    // Task 21: stable channel name (no Date.now()) to prevent duplicate channels
+    const channelName = `${table}:${filter || '*'}:${event}`
     const channelConfig = {
       event,
       schema: 'public',

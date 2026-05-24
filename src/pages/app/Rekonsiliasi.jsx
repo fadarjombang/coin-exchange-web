@@ -29,6 +29,9 @@ export default function Rekonsiliasi() {
   const [uangSetoran, setUangSetoran] = useState('')
   const [catatan, setCatatan]   = useState('')
   const [photo, setPhoto]       = useState(null)
+  // Hybrid: auto-fill dari sistem, koreksi manual hanya jika ada perbedaan
+  const [showKoreksi, setShowKoreksi] = useState(false)
+  const [sisaKoreksi, setSisaKoreksi] = useState({})
   const [sigUpdate, setSigUpdate] = useState(0)
 
   const triggerSigUpdate = useCallback(() => setSigUpdate(v => v + 1), [])
@@ -69,7 +72,11 @@ export default function Rekonsiliasi() {
       c.getContext('2d').scale(r, r); pad.clear()
     }
     resize()
+    window.addEventListener('resize', resize)
+    window.addEventListener('orientationchange', resize)
     return () => {
+      window.removeEventListener('resize', resize)
+      window.removeEventListener('orientationchange', resize)
       pad.removeEventListener('endStroke', triggerSigUpdate)
       pad.off()
     }
@@ -97,10 +104,14 @@ export default function Rekonsiliasi() {
   const totalUangMasuk  = trxList.reduce((s, t) => s + (t.total_uang_diterima || 0), 0)
   const sisaKoinTotal   = Object.values(sisaDenom).reduce((s, v) => s + v, 0)
   const uangSetoranNum  = parseInt(String(uangSetoran).replace(/\D/g, '')) || 0
-  const selisihUang     = totalUangMasuk - uangSetoranNum  // uang masuk - setoran ke gudang
+  const selisihUang     = totalUangMasuk - uangSetoranNum
 
-  const denomAktifSisa  = DENOM_LIST.filter(d => sisaDenom[d.key] > 0)
-  // ========================================================================
+  // Nilai aktual: pakai koreksi manual jika showKoreksi, else pakai auto-fill sistem
+  const sisaAktual = showKoreksi ? sisaKoreksi : sisaDenom
+  const sisaAktualNilai = DENOM_LIST.reduce((s, d) => s + (parseInt(sisaAktual[d.key] || 0)), 0)
+  const selisihKoin = sisaAktualNilai - sisaKoinTotal
+
+  const denomAktifSisa = DENOM_LIST.filter(d => sisaDenom[d.key] > 0)
 
   const canSubmit = photo && !ttdRef.current?.isEmpty()
 
@@ -114,22 +125,34 @@ export default function Rekonsiliasi() {
     setSaving(true)
     try {
       const ttd = ttdRef.current?.toDataURL('image/png')
-      await supabase.from('rekonsiliasi').insert({
-        sesi_tugas_id: sesi.id,
-        kasir_id: profile.id,
-        // Simpan sisa koin per denom (dari kalkulasi sistem)
-        ...Object.fromEntries(DENOM_LIST.map(d => [`sisa_koin_${d.key.replace('koin_', '')}`, sisaDenom[d.key] || 0])),
-        sisa_koin_nilai: sisaKoinTotal,
-        expected_sisa_koin: sisaKoinTotal, // sama karena auto-hitung
-        total_uang_masuk: totalUangMasuk,
-        uang_setoran: uangSetoranNum,
-        selisih_koin: 0,
-        selisih_uang: selisihUang,
-        foto_sisa: photo,
-        ttd_kasir: ttd,
-        catatan,
+
+      // sisaAktual & sisaAktualNilai sudah dihitung di atas (auto atau koreksi)
+      const isBalanced = selisihKoin === 0 && selisihUang === 0
+
+      // Task 19: atomic RPC — INSERT rekonsiliasi + UPDATE sesi dalam satu transaksi
+      const { error } = await supabase.rpc('submit_rekonsiliasi', {
+        p_sesi_id:           sesi.id,
+        p_sisa_koin_100:     parseInt(sisaAktual.koin_100   || 0),
+        p_sisa_koin_200:     parseInt(sisaAktual.koin_200   || 0),
+        p_sisa_koin_500:     parseInt(sisaAktual.koin_500   || 0),
+        p_sisa_koin_1000:    parseInt(sisaAktual.koin_1000  || 0),
+        p_sisa_koin_2000:    parseInt(sisaAktual.koin_2000  || 0),
+        p_sisa_koin_5000:    parseInt(sisaAktual.koin_5000  || 0),
+        p_sisa_koin_10000:   parseInt(sisaAktual.koin_10000 || 0),
+        p_sisa_koin_20000:   parseInt(sisaAktual.koin_20000 || 0),
+        p_sisa_koin_nilai:   sisaAktualNilai,
+        p_expected_sisa:     sisaKoinTotal,
+        p_total_koin_keluar: totalKoinKeluar,
+        p_total_uang_masuk:  totalUangMasuk,
+        p_uang_setoran:      uangSetoranNum,
+        p_selisih_koin:      selisihKoin,
+        p_selisih_uang:      selisihUang,
+        p_is_balanced:       isBalanced,
+        p_foto_sisa:         photo,
+        p_ttd_kasir:         ttd,
+        p_catatan:           catatan,
       })
-      await supabase.from('sesi_tugas').update({ status: 'pending_close' }).eq('id', sesi.id)
+      if (error) throw error
       toast({ title: 'Rekonsiliasi terkirim', description: 'Menunggu persetujuan Manager', variant: 'success' })
       navigate('/app')
     } catch (err) {
@@ -185,16 +208,17 @@ export default function Rekonsiliasi() {
           </CardContent>
         </Card>
 
-        {/* Sisa Koin (Auto-hitung) */}
+        {/* Sisa Koin — Auto-fill dari sistem, koreksi manual jika ada perbedaan */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex justify-between items-center">
               <span>Sisa Koin Dibawa Pulang</span>
               <Badge variant="info">{formatRupiah(sisaKoinTotal)}</Badge>
             </CardTitle>
-            <p className="text-xs text-muted-foreground">Dihitung otomatis oleh sistem</p>
+            <p className="text-xs text-muted-foreground">Dihitung otomatis dari modal dikurangi koin yang diserahkan ke toko</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            {/* Tampilan auto-fill */}
             {denomAktifSisa.length > 0 ? (
               <div className="space-y-1.5">
                 {denomAktifSisa.map(d => (
@@ -212,6 +236,75 @@ export default function Rekonsiliasi() {
               <p className="text-sm text-muted-foreground text-center py-2">
                 ✅ Semua koin telah diserahkan ke toko
               </p>
+            )}
+
+            {/* Tombol laporkan perbedaan */}
+            {!showKoreksi ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSisaKoreksi({ ...sisaDenom })
+                  setShowKoreksi(true)
+                }}
+                className="w-full text-xs text-amber-600 border border-amber-200 bg-amber-50 rounded-lg py-2 hover:bg-amber-100 transition-colors"
+              >
+                ⚠️ Ada perbedaan dengan hitungan fisik? Laporkan di sini
+              </button>
+            ) : (
+              <div className="space-y-3 border border-amber-200 rounded-lg p-3 bg-amber-50/50">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-amber-800">Koreksi Hitungan Fisik</p>
+                  <button
+                    type="button"
+                    onClick={() => { setShowKoreksi(false); setSisaKoreksi({}) }}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Batalkan
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {DENOM_LIST.map((d) => {
+                    const expected = sisaDenom[d.key]
+                    const aktual = parseInt(sisaKoreksi[d.key] ?? expected)
+                    const selisih = aktual - expected
+                    return (
+                      <div key={d.key} className="space-y-1">
+                        <Label className="text-xs">{d.label}</Label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
+                          <Input
+                            type="text" inputMode="numeric"
+                            className={`h-9 pl-7 bg-white ${selisih !== 0 ? 'border-amber-400' : ''}`}
+                            value={aktual.toLocaleString('id-ID')}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0
+                              setSisaKoreksi(prev => ({ ...prev, [d.key]: val }))
+                            }}
+                          />
+                        </div>
+                        {selisih !== 0 && (
+                          <p className="text-xs text-amber-700">
+                            {selisih > 0 ? '+' : ''}{formatRupiah(selisih)} vs sistem
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                {/* Status selisih koreksi */}
+                {selisihKoin !== 0 && (
+                  <div className="flex items-center gap-2 p-2 bg-amber-100 rounded text-xs text-amber-800">
+                    <AlertCircle size={14} />
+                    <span>Selisih koin: <strong>{selisihKoin > 0 ? '+' : ''}{formatRupiah(selisihKoin)}</strong> — akan dilaporkan ke Manager</span>
+                  </div>
+                )}
+                {selisihKoin === 0 && (
+                  <div className="flex items-center gap-2 p-2 bg-emerald-50 rounded text-xs text-emerald-700">
+                    <CheckCircle2 size={14} />
+                    <span>Koreksi sesuai dengan hitungan sistem</span>
+                  </div>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>

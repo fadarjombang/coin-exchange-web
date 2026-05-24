@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
+import { adminApi } from '@/lib/adminApi'
 import { useAuth } from '@/hooks/useAuth'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
@@ -10,14 +11,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, AlertTriangle, Pencil, Download } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle, Loader2, AlertTriangle, Pencil, Download, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { formatRupiah, formatDateTime, formatDate, SESSION_STATUS, ASSIGNMENT_STATUS, DENOM_LIST } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import { generateSuratTugasPDF } from '@/lib/pdfHelper'
 
 export default function SesiDetail() {
@@ -36,6 +36,8 @@ export default function SesiDetail() {
   const [modalForm, setModalForm] = useState({})
   const [savingModal, setSavingModal] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingDraft, setDeletingDraft] = useState(false)
 
   const fetchSesi = useCallback(async () => {
     const { data } = await supabase.from('sesi_tugas')
@@ -54,104 +56,16 @@ export default function SesiDetail() {
     setSaving(true)
     try {
       if (dialog === 'approve') {
-        // Fetch modal_koin LANGSUNG dari DB — jangan pakai sesi.modal_koin (bisa stale/null dari join)
-        const { data: modalKoin, error: modalErr } = await supabaseAdmin
-          .from('modal_koin').select('*').eq('sesi_tugas_id', id).single()
-        if (modalErr || !modalKoin) throw new Error('Data modal koin tidak ditemukan: ' + (modalErr?.message || 'null'))
-
-        const { data: currentStok, error: stokErr } = await supabaseAdmin
-          .from('stok_gudang').select('*').single()
-        if (stokErr || !currentStok) throw new Error('Stok gudang tidak ditemukan: ' + stokErr?.message)
-
-        // ⚠️ Safety check — pastikan stok masih cukup saat approve (prevent race condition)
-        const insufficientDenoms = DENOM_LIST.filter(d => (modalKoin[d.key] || 0) > (currentStok[d.key] || 0))
-        if (insufficientDenoms.length > 0) {
-          const detail = insufficientDenoms.map(d =>
-            `${d.label}: butuh ${formatRupiah(modalKoin[d.key])} tapi stok hanya ${formatRupiah(currentStok[d.key] || 0)}`
-          ).join('\n')
-          throw new Error(`Stok tidak mencukupi!\n${detail}\n\nKemungkinan sesi lain sudah diapprove lebih dulu. Kurangi modal sesi ini lalu coba lagi.`)
-        }
-
-        // Hitung stok baru setelah dikurangi modal
-        const updates = DENOM_LIST.reduce((acc, d) => {
-          acc[d.key] = Math.max(0, (currentStok[d.key] || 0) - (modalKoin[d.key] || 0))
-          return acc
-        }, {})
-
-        const { error: updateErr } = await supabaseAdmin.from('stok_gudang')
-          .update({ ...updates, updated_by: profile.id, last_updated: new Date().toISOString() })
-          .eq('id', currentStok.id)
-        if (updateErr) throw new Error('Gagal update stok: ' + updateErr.message)
-
-        // Catat ke log — keluar modal
-        const deltaTotal = DENOM_LIST.reduce((sum, d) => sum - (modalKoin[d.key] || 0), 0)
-        const denomDetail = DENOM_LIST.filter(d => modalKoin[d.key] > 0)
-          .map(d => `${d.label}: ${formatRupiah(modalKoin[d.key])}`).join(' | ')
-        const { error: logErr } = await supabaseAdmin.from('stok_gudang_log').insert({
-          tipe: 'keluar_modal',
-          keterangan: `Modal diambil oleh kasir — Sesi ${id.slice(0,8)} | ${denomDetail || 'tidak ada modal'}`,
-          sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
-          ...DENOM_LIST.reduce((acc, d) => { acc[`delta_${d.key.replace('koin_', '')}`] = -(modalKoin[d.key] || 0); return acc }, {})
-        })
-        if (logErr) console.error('Log approve error:', logErr.message)
-
-        await supabase.from('sesi_tugas').update({
-          status: 'active', approved_by: profile.id,
-          approved_at: new Date().toISOString(), catatan_approval: catatan
-        }).eq('id', id)
-        const deducted = DENOM_LIST.filter(d => modalKoin[d.key] > 0).map(d => `${d.label}: -${formatRupiah(modalKoin[d.key])}`).join(', ')
-        toast({ title: 'Disetujui', description: `Stok gudang dikurangi: ${deducted || '(tidak ada modal)'}`, variant: 'success' })
+        await adminApi.approveSession(id, profile.id, catatan)
+        toast({ title: 'Disetujui', description: 'Sesi disetujui dan stok gudang telah dikurangi.', variant: 'success' })
 
       } else if (dialog === 'reject') {
         await supabase.from('sesi_tugas').update({ status: 'draft', catatan_approval: catatan }).eq('id', id)
         toast({ title: 'Ditolak', description: 'Sesi dikembalikan ke draft.' })
 
       } else if (dialog === 'approve_close') {
-        // Fetch rekonsiliasi LANGSUNG dari DB
-        const { data: rek, error: rekErr } = await supabaseAdmin
-          .from('rekonsiliasi').select('*').eq('sesi_tugas_id', id).single()
-        if (rekErr || !rek) throw new Error('Data rekonsiliasi tidak ditemukan: ' + (rekErr?.message || 'null'))
-
-        const { data: currentStok, error: stokErr } = await supabaseAdmin
-          .from('stok_gudang').select('*').single()
-        if (stokErr || !currentStok) throw new Error('Stok gudang tidak ditemukan: ' + stokErr?.message)
-
-        // Tambah sisa koin ke stok
-        const updates = DENOM_LIST.reduce((acc, d) => {
-          const sisaKey = `sisa_koin_${d.key.replace('koin_', '')}`
-          acc[d.key] = (currentStok[d.key] || 0) + (rek[sisaKey] || 0)
-          return acc
-        }, {})
-
-        // Tambah uang besar yang diterima kasir selama sesi ke stok gudang
-        const { data: trxList } = await supabaseAdmin
-          .from('transaksi').select('uang_50000, uang_100000').eq('sesi_tugas_id', id)
-        const totalUang50k  = (trxList || []).reduce((s, t) => s + (t.uang_50000  || 0), 0)
-        const totalUang100k = (trxList || []).reduce((s, t) => s + (t.uang_100000 || 0), 0)
-        updates.uang_50000  = (currentStok.uang_50000  || 0) + totalUang50k
-        updates.uang_100000 = (currentStok.uang_100000 || 0) + totalUang100k
-
-        const { error: updateErr } = await supabaseAdmin.from('stok_gudang')
-          .update({ ...updates, updated_by: profile.id, last_updated: new Date().toISOString() })
-          .eq('id', currentStok.id)
-        if (updateErr) throw new Error('Gagal update stok: ' + updateErr.message)
-
-        // Catat ke log — masuk sisa koin + uang besar
-        const deltaKoin  = DENOM_LIST.reduce((sum, d) => sum + (rek[`sisa_koin_${d.key.replace('koin_','')}` ] || 0), 0)
-        const deltaUang  = totalUang50k + totalUang100k
-        const deltaTotal = deltaKoin + deltaUang
-        const { error: logErr2 } = await supabaseAdmin.from('stok_gudang_log').insert({
-          tipe: 'masuk_sisa',
-          keterangan: `Sesi ditutup — Sisa koin: ${formatRupiah(deltaKoin)} | Uang besar: ${formatRupiah(deltaUang)} | Sesi ${id.slice(0,8)}`,
-          sesi_tugas_id: id, delta_total: deltaTotal, created_by: profile.id,
-        })
-        if (logErr2) console.error('Log close error:', logErr2.message)
-
-        await supabase.from('sesi_tugas').update({
-          status: 'closed', closed_by: profile.id,
-          closed_at: new Date().toISOString(), catatan_close: catatan
-        }).eq('id', id)
-        toast({ title: 'Sesi Ditutup', description: `Koin: +${formatRupiah(deltaKoin)} | Uang besar: +${formatRupiah(deltaUang)}`, variant: 'success' })
+        await adminApi.closeSession(id, profile.id, catatan)
+        toast({ title: 'Sesi Ditutup', description: 'Sesi berhasil ditutup dan stok gudang diperbarui.', variant: 'success' })
 
       } else if (dialog === 'reject_close') {
         await supabase.from('sesi_tugas').update({ status: 'active' }).eq('id', id)
@@ -163,7 +77,19 @@ export default function SesiDetail() {
     finally { setSaving(false) }
   }
 
-
+  const handleDeleteDraft = async () => {
+    setDeletingDraft(true)
+    try {
+      await supabase.from('toko_assignment').delete().eq('sesi_tugas_id', id)
+      await supabase.from('modal_koin').delete().eq('sesi_tugas_id', id)
+      await supabase.from('sesi_tugas').delete().eq('id', id)
+      navigate('/dashboard/sesi')
+    } catch (err) {
+      toast({ title: 'Gagal menghapus', description: err.message, variant: 'destructive' })
+    } finally {
+      setDeletingDraft(false)
+    }
+  }
 
   if (loading) return (
     <DashboardLayout>
@@ -184,8 +110,9 @@ export default function SesiDetail() {
   const isAdminOrManager  = isAdmin || isManager
   const canApprove    = isManager && status === 'pending_approval'   // hanya manager
   const canClose      = isManager && status === 'pending_close'      // hanya manager
-  const canEdit       = isAdmin && status === 'draft'                // hanya admin
-  const canEditModal  = isAdmin && status === 'pending_approval'     // hanya admin
+  const canEdit       = isAdmin && status === 'draft'                  // hanya admin
+  const canEditModal  = isAdmin && status === 'pending_approval'       // hanya admin
+  const canDelete     = isAdmin && status === 'draft'                    // hanya admin, hanya draft
 
   const startEditModal = () => {
     const m = sesi?.modal_koin || {}
@@ -197,19 +124,31 @@ export default function SesiDetail() {
     setSavingModal(true)
     try {
       // Cek stok efektif (stok - modal pending sesi LAIN, bukan sesi ini)
-      const { data: rawStok } = await supabaseAdmin.from('stok_gudang').select('*').single()
-      const { data: pendingSesiIds } = await supabaseAdmin.from('sesi_tugas').select('id').eq('status','pending_approval').neq('id', id)
+      const { data: rawStok } = await supabase.from('stok_gudang').select('*').maybeSingle()
+      const { data: pendingSesiIds } = await supabase.from('sesi_tugas').select('id').eq('status','pending_approval').neq('id', id)
       const sesiIds = (pendingSesiIds || []).map(s => s.id)
       let reserved = {}
       if (sesiIds.length > 0) {
-        const { data: pendingModal } = await supabaseAdmin.from('modal_koin').select('*').in('sesi_tugas_id', sesiIds)
+        const { data: pendingModal } = await supabase.from('modal_koin').select('*').in('sesi_tugas_id', sesiIds)
         reserved = (pendingModal || []).reduce((acc, m) => {
           DENOM_LIST.forEach(d => { acc[d.key] = (acc[d.key] || 0) + (m[d.key] || 0) })
           return acc
         }, {})
       }
 
-      // Validasi
+      // Validasi 1: total modal baru harus sama dengan total alokasi toko
+      const totalModalBaru = DENOM_LIST.reduce((s, d) => s + (parseInt(modalForm[d.key] || 0)), 0)
+      const totalAlokasi = (sesi?.toko_assignment || []).reduce((s, a) => s + (a.alokasi_koin || 0), 0)
+      if (totalModalBaru !== totalAlokasi) {
+        toast({
+          title: 'Total modal tidak sesuai alokasi',
+          description: `Modal baru: ${formatRupiah(totalModalBaru)} | Total alokasi toko: ${formatRupiah(totalAlokasi)}. Keduanya harus sama.`,
+          variant: 'destructive'
+        })
+        return
+      }
+
+      // Validasi 2: tiap denom tidak melebihi stok tersedia
       for (const d of DENOM_LIST) {
         const available = Math.max(0, (rawStok[d.key] || 0) - (reserved[d.key] || 0))
         if ((modalForm[d.key] || 0) > available) {
@@ -219,7 +158,7 @@ export default function SesiDetail() {
       }
 
       // Update modal_koin
-      const { error } = await supabaseAdmin.from('modal_koin')
+      const { error } = await supabase.from('modal_koin')
         .update({ ...modalForm })
         .eq('sesi_tugas_id', id)
       if (error) throw error
@@ -255,6 +194,11 @@ export default function SesiDetail() {
               </Button>
             )}
             {canEdit && <Button variant="outline" onClick={() => navigate(`/dashboard/sesi/edit/${id}`)}>Edit Draft</Button>}
+            {canDelete && (
+              <Button variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
+                <Trash2 size={16} /> Hapus Draft
+              </Button>
+            )}
             {canEditModal && !editModal && (
               <Button variant="outline" onClick={startEditModal}>
                 <Pencil size={14} className="mr-1" /> Koreksi Modal
@@ -435,6 +379,26 @@ export default function SesiDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Draft Sesi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sesi draft tanggal <strong>{formatDate(sesi?.tanggal)}</strong> untuk kasir <strong>{sesi?.kasir?.name}</strong> akan dihapus permanen beserta semua data toko dan modal koin-nya.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingDraft}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteDraft}
+              disabled={deletingDraft}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingDraft ? 'Menghapus...' : 'Ya, Hapus Draft'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   )
 }

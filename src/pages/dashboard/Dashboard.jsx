@@ -25,9 +25,9 @@ export default function Dashboard() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
     const [stokRes, sesiRes, trxRes] = await Promise.all([
-      supabase.from('stok_gudang').select('*').single(),
+      supabase.from('stok_gudang').select('*').maybeSingle(),
       supabase.from('sesi_tugas').select(`*, kasir:kasir_id(name), driver:driver_id(name), mobil:mobil_id(nopol), toko_assignment(*)`).in('status', ['active','pending_approval','pending_close']),
-      supabase.from('transaksi').select('total_koin_nilai, selisih, created_at, toko:toko_id(area)').gte('created_at', today + 'T00:00:00'),
+      supabase.from('transaksi').select('total_koin_nilai, selisih, created_at, toko:toko_id(area)').gte('created_at', new Date(today + 'T00:00:00+07:00').toISOString()),
     ])
 
     const rawStok = stokRes.data || {}

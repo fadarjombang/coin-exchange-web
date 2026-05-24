@@ -176,6 +176,8 @@ CREATE TABLE IF NOT EXISTS stok_gudang (
     koin_100*100 + koin_200*200 + koin_500*500 + koin_1000*1000 +
     koin_2000*2000 + koin_5000*5000 + koin_10000*10000 + koin_20000*20000
   ) STORED,
+  uang_50000   BIGINT      DEFAULT 0,
+  uang_100000  BIGINT      DEFAULT 0,
   last_updated TIMESTAMPTZ DEFAULT now(),
   updated_by   UUID        REFERENCES users(id)
 );
@@ -262,20 +264,20 @@ CREATE POLICY "sesi_select_admin"  ON sesi_tugas FOR SELECT TO authenticated
 CREATE POLICY "sesi_select_kasir"  ON sesi_tugas FOR SELECT TO authenticated
   USING (kasir_id = auth.uid());
 CREATE POLICY "sesi_insert"        ON sesi_tugas FOR INSERT TO authenticated
-  WITH CHECK (get_my_role() && ARRAY['admin','superadmin']::text[]);
+  WITH CHECK (get_my_role() && ARRAY['manager']::text[]);
 CREATE POLICY "sesi_update_admin"  ON sesi_tugas FOR UPDATE TO authenticated
-  USING (get_my_role() && ARRAY['admin','manager','superadmin']::text[]);
+  USING (get_my_role() && ARRAY['manager']::text[]);
 
 -- MODAL KOIN: follow sesi_tugas access
 CREATE POLICY "modal_select" ON modal_koin FOR SELECT TO authenticated USING (true);
-CREATE POLICY "modal_insert" ON modal_koin FOR INSERT TO authenticated WITH CHECK (get_my_role() && ARRAY['admin','superadmin']::text[]);
-CREATE POLICY "modal_update" ON modal_koin FOR UPDATE TO authenticated USING (get_my_role() && ARRAY['admin','superadmin']::text[]);
+CREATE POLICY "modal_insert" ON modal_koin FOR INSERT TO authenticated WITH CHECK (get_my_role() && ARRAY['manager']::text[]);
+CREATE POLICY "modal_update" ON modal_koin FOR UPDATE TO authenticated USING (get_my_role() && ARRAY['manager']::text[]);
 
 -- TOKO ASSIGNMENT: admin/manager/kasir can read; kasir updates own; admin inserts; admin deletes
 CREATE POLICY "assign_select" ON toko_assignment FOR SELECT TO authenticated USING (true);
-CREATE POLICY "assign_insert" ON toko_assignment FOR INSERT TO authenticated WITH CHECK (get_my_role() && ARRAY['admin','superadmin']::text[]);
+CREATE POLICY "assign_insert" ON toko_assignment FOR INSERT TO authenticated WITH CHECK (get_my_role() && ARRAY['manager']::text[]);
 CREATE POLICY "assign_update" ON toko_assignment FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "assign_delete" ON toko_assignment FOR DELETE TO authenticated USING (get_my_role() && ARRAY['admin','superadmin']::text[]);
+CREATE POLICY "assign_delete" ON toko_assignment FOR DELETE TO authenticated USING (get_my_role() && ARRAY['manager']::text[]);
 
 -- TRANSAKSI: admin/manager see all; kasir inserts/sees own
 CREATE POLICY "trx_select_admin" ON transaksi FOR SELECT TO authenticated
@@ -305,3 +307,41 @@ ALTER PUBLICATION supabase_realtime ADD TABLE sesi_tugas;
 INSERT INTO stok_gudang (koin_100, koin_200, koin_500, koin_1000, koin_2000, koin_5000, koin_10000, koin_20000)
 VALUES (0, 0, 0, 0, 0, 0, 0, 0)
 ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- TRIGGER: Sinkronisasi auth.users → public.users
+-- Dipanggil otomatis saat user baru dibuat (termasuk via Dashboard Supabase)
+-- ============================================================
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Hanya insert jika belum ada (idempotent)
+  INSERT INTO public.users (id, nik, name, role, is_active)
+  VALUES (
+    NEW.id,
+    -- NIK: ambil dari metadata jika ada, fallback ke bagian sebelum '@' dari email
+    COALESCE(NEW.raw_user_meta_data->>'nik', SPLIT_PART(NEW.email, '@', 1)),
+    -- Name: ambil dari metadata jika ada, fallback ke email
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
+    -- Role: ambil dari metadata jika ada (harus berupa array JSON), fallback ke ['kasir']
+    COALESCE(
+      ARRAY(SELECT jsonb_array_elements_text(NEW.raw_user_meta_data->'role')),
+      ARRAY['kasir']::text[]
+    ),
+    true
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+-- Buat trigger pada auth.users
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();

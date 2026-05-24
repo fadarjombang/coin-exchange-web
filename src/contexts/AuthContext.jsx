@@ -1,26 +1,35 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { getProfile, signIn as authSignIn, signOut as authSignOut } from '../lib/auth'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null)   // Supabase auth user
-  const [profile, setProfile] = useState(null)   // public.users profile (with role)
-  const [loading, setLoading] = useState(true)   // initial session check
+  const [user, setUser]       = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const reqId = useRef(0)
 
-  // Fetch profile after auth user is known
+  // Fetch profile after auth user is known — generation counter prevents stale updates
   const loadProfile = useCallback(async (authUser) => {
+    const myId = ++reqId.current
     if (!authUser) {
-      setProfile(null)
+      if (myId === reqId.current) setProfile(null)
       return
     }
     try {
       const p = await getProfile(authUser.id)
+      if (myId !== reqId.current) return  // stale, discard
+      if (!p) {
+        // Account deactivated — force sign out
+        await authSignOut()
+        setProfile(null)
+        return
+      }
       setProfile(p)
     } catch (err) {
       console.error('Failed to load profile:', err)
-      setProfile(null)
+      if (myId === reqId.current) setProfile(null)
     }
   }, [])
 

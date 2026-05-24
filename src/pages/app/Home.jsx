@@ -23,7 +23,7 @@ export default function AppHome() {
     setLoading(true)
     const { data: rows } = await supabase.from('sesi_tugas')
       .select('*, mobil:mobil_id(nopol), driver:driver_id(name), modal_koin(*), toko_assignment(*, toko:toko_id(nama_toko,kode_toko))')
-      .eq('kasir_id', profile.id).in('status', ['pending_approval','active'])
+      .eq('kasir_id', profile.id).in('status', ['pending_approval','active','pending_close'])
       .order('created_at', { ascending: false }).limit(1)
     const data = rows?.[0] ?? null
     setSesi(data)
@@ -67,6 +67,13 @@ export default function AppHome() {
             <CardContent className="p-5 text-center">
               <Badge variant="warning" className="mb-3">Menunggu Persetujuan</Badge>
               <p className="text-sm text-amber-800">Sesi tugas Anda sedang dalam proses persetujuan Manager. Harap menunggu konfirmasi sebelum memulai operasi.</p>
+            </CardContent>
+          </Card>
+        ) : sesi.status === 'pending_close' ? (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-5 text-center">
+              <Badge variant="info" className="mb-3">Rekonsiliasi Terkirim</Badge>
+              <p className="text-sm text-blue-800">Rekonsiliasi Anda sudah dikirim dan sedang menunggu persetujuan Manager untuk menutup sesi.</p>
             </CardContent>
           </Card>
         ) : (

@@ -31,6 +31,6 @@ export const adminApi = {
   resetPassword: (userId, newPassword) => callAdminFunction('reset-password', { userId, newPassword }),
   updateUser: (userId, payload) => callAdminFunction('update-user', { userId, ...payload }),
   deleteUser: (userId) => callAdminFunction('delete-user', { userId }),
-  approveSession: (payload) => callAdminFunction('approve-session', payload),
-  closeSession: (payload) => callAdminFunction('close-session', payload),
+  approveSession: (sesiId, approvedBy, catatan) => callAdminFunction('approve-session', { sesiId, approvedBy, catatan }),
+  closeSession: (sesiId, closedBy, catatan) => callAdminFunction('close-session', { sesiId, closedBy, catatan }),
 }

@@ -7,8 +7,6 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Download, Loader2 } from 'lucide-react'
 import { formatRupiah, formatDateTime, DENOM_LIST } from '@/lib/utils'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 
 export default function TransaksiPreview() {
   const { assignmentId } = useParams()
@@ -38,6 +36,10 @@ export default function TransaksiPreview() {
     try {
       const el = pdfRef.current
       if (!el) return
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
       const canvas = await html2canvas(el, {
         scale: 2, useCORS: true, logging: false,
         windowWidth: el.scrollWidth, windowHeight: el.scrollHeight,

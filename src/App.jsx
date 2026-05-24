@@ -1,44 +1,52 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Toaster } from './components/ui/toaster'
 import TourGuide from './components/TourGuide'
+import { Loader2 } from 'lucide-react'
 
 // Pages
 import Login from './pages/Login'
 
-// Superadmin
-import UserList from './pages/superadmin/UserList'
-import UserForm from './pages/superadmin/UserForm'
+// Superadmin — lazy loaded
+const UserList = lazy(() => import('./pages/superadmin/UserList'))
+const UserForm = lazy(() => import('./pages/superadmin/UserForm'))
 
-// Dashboard (Admin + Manager)
-import Dashboard from './pages/dashboard/Dashboard'
-import TokoList from './pages/dashboard/toko/TokoList'
-import TokoForm from './pages/dashboard/toko/TokoForm'
-import TokoRiwayat from './pages/dashboard/toko/TokoRiwayat'
-import MobilList from './pages/dashboard/mobil/MobilList'
-import StokGudang from './pages/dashboard/stok/StokGudang'
-import SesiList from './pages/dashboard/sesi/SesiList'
-import SesiDetail from './pages/dashboard/sesi/SesiDetail'
-import BuatSesi from './pages/dashboard/sesi/BuatSesi'
-import Laporan from './pages/dashboard/laporan/Laporan'
-import TransaksiPage from './pages/dashboard/transaksi/TransaksiPage'
+// Dashboard (Admin + Manager) — lazy loaded
+const Dashboard          = lazy(() => import('./pages/dashboard/Dashboard'))
+const TokoList           = lazy(() => import('./pages/dashboard/toko/TokoList'))
+const TokoForm           = lazy(() => import('./pages/dashboard/toko/TokoForm'))
+const TokoRiwayat        = lazy(() => import('./pages/dashboard/toko/TokoRiwayat'))
+const MobilList          = lazy(() => import('./pages/dashboard/mobil/MobilList'))
+const StokGudang         = lazy(() => import('./pages/dashboard/stok/StokGudang'))
+const SesiList           = lazy(() => import('./pages/dashboard/sesi/SesiList'))
+const SesiDetail         = lazy(() => import('./pages/dashboard/sesi/SesiDetail'))
+const BuatSesi           = lazy(() => import('./pages/dashboard/sesi/BuatSesi'))
+const Laporan            = lazy(() => import('./pages/dashboard/laporan/Laporan'))
+const TransaksiPage      = lazy(() => import('./pages/dashboard/transaksi/TransaksiPage'))
+const KantorTransaksi    = lazy(() => import('./pages/dashboard/kantor/KantorTransaksi'))
+const KantorTransaksiBaru = lazy(() => import('./pages/dashboard/kantor/KantorTransaksiBaru'))
 
-// Kasir Mobile App
-import AppHome from './pages/app/Home'
-import AppTokoList from './pages/app/TokoList'
-import TransaksiForm from './pages/app/TransaksiForm'
-import TransaksiPreview from './pages/app/TransaksiPreview'
-import Riwayat from './pages/app/Riwayat'
-import TransaksiDetail from './pages/app/TransaksiDetail'
-import Rekonsiliasi from './pages/app/Rekonsiliasi'
-import AppProfil from './pages/app/Profil'
-
-// Dashboard - Kantor
-import KantorTransaksi from './pages/dashboard/kantor/KantorTransaksi'
-import KantorTransaksiBaru from './pages/dashboard/kantor/KantorTransaksiBaru'
+// Kasir Mobile App — lazy loaded (isolated from admin deps)
+const AppHome          = lazy(() => import('./pages/app/Home'))
+const AppTokoList      = lazy(() => import('./pages/app/TokoList'))
+const TransaksiForm    = lazy(() => import('./pages/app/TransaksiForm'))
+const TransaksiPreview = lazy(() => import('./pages/app/TransaksiPreview'))
+const Riwayat          = lazy(() => import('./pages/app/Riwayat'))
+const TransaksiDetail  = lazy(() => import('./pages/app/TransaksiDetail'))
+const Rekonsiliasi     = lazy(() => import('./pages/app/Rekonsiliasi'))
+const AppProfil        = lazy(() => import('./pages/app/Profil'))
 
 // Layout guards
 import ProtectedRoute from './components/layout/ProtectedRoute'
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <Loader2 className="animate-spin text-primary w-8 h-8" />
+    </div>
+  )
+}
 
 function RoleRedirect() {
   const { role, isAuthenticated, loading } = useAuth()
@@ -59,7 +67,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<RoleRedirect />} />
@@ -202,6 +211,7 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
         <TourGuide />
         <Toaster />
       </AuthProvider>

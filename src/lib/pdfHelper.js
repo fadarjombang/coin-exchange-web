@@ -1,10 +1,47 @@
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import { formatDate } from '@/lib/utils'
-import logoImg from '../../logo.png'
+import { supabase } from '@/lib/supabase'
+
+// Task 43: logo served from public/ (cached by browser, not bundled in chunk)
+const logoImg = '/logo.png'
+
+// Bulan & tahun launching pertama — offset 42 agar nomor mulai dari 43
+const LAUNCH_YEAR = 2026
+const LAUNCH_MONTH = 5  // Mei (1-indexed)
+const LAUNCH_OFFSET = 40
+
+/**
+ * Hitung nomor urut sesi dalam bulannya.
+ * Bulan launching (Mei 2026): mulai dari 43.
+ * Bulan berikutnya: reset ke 1.
+ */
+async function getNomorUrut(sesiId, tanggal) {
+  const tgl = new Date(tanggal)
+  const year  = tgl.getFullYear()
+  const month = tgl.getMonth() + 1
+  const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`
+  const endOfMonth   = new Date(year, month, 0).toISOString().split('T')[0]
+
+  const { data } = await supabase
+    .from('sesi_tugas')
+    .select('id, tanggal, created_at')
+    .gte('tanggal', startOfMonth)
+    .lte('tanggal', endOfMonth)
+    .order('tanggal', { ascending: true })
+    .order('created_at', { ascending: true })
+
+  const idx = (data || []).findIndex(s => s.id === sesiId)
+  const urutan = idx >= 0 ? idx + 1 : (data?.length || 0) + 1
+  const isLaunchMonth = year === LAUNCH_YEAR && month === LAUNCH_MONTH
+  return isLaunchMonth ? urutan + LAUNCH_OFFSET : urutan
+}
 
 export const generateSuratTugasPDF = async (sessions, setPdfLoading, toast) => {
   setPdfLoading(true)
+  // Dynamic import — hanya dimuat saat fungsi dipanggil
+  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+    import('jspdf'),
+    import('html2canvas'),
+  ])
   try {
     const container = document.createElement('div')
     container.style.position = 'absolute'
@@ -22,13 +59,13 @@ export const generateSuratTugasPDF = async (sessions, setPdfLoading, toast) => {
     for (let i = 0; i < sessions.length; i++) {
       const s = sessions[i]
 
-      // Hitung bulan romawi untuk nomor surat
+      // Hitung nomor surat: urutan dalam bulan + bulan romawi + tahun
       const tgl = new Date(s.tanggal)
       const romawi = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
       const bulanRomawi = romawi[tgl.getMonth()]
       const tahun = tgl.getFullYear()
-      const noSesiShort = s.id.slice(0, 4).toUpperCase()
-      const nomorSurat = `No(${noSesiShort}/OM-JBG/${bulanRomawi}/${tahun})`
+      const nomorUrut = await getNomorUrut(s.id, s.tanggal)
+      const nomorSurat = `No(${nomorUrut}/OM-JBG/${bulanRomawi}/${tahun})`
 
       const storeCount = s.toko_assignment?.length || 0
       const isUltraCompact = storeCount > 17

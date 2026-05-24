@@ -9,19 +9,26 @@ export function cn(...inputs) {
 }
 
 // ── Currency & Number Formatting ─────────────────────────────
+const RUPIAH_FMT = new Intl.NumberFormat('id-ID', {
+  style: 'currency', currency: 'IDR',
+  minimumFractionDigits: 0, maximumFractionDigits: 0,
+})
+const NUMBER_FMT = new Intl.NumberFormat('id-ID')
+const DATE_FMT = new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
+const DATETIME_FMT = new Intl.DateTimeFormat('id-ID', {
+  day: '2-digit', month: 'short', year: 'numeric',
+  hour: '2-digit', minute: '2-digit',
+})
+const TIME_FMT = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' })
+
 export function formatRupiah(value) {
   if (value === null || value === undefined) return 'Rp 0'
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)
+  return RUPIAH_FMT.format(value)
 }
 
 export function formatNumber(value) {
   if (value === null || value === undefined) return '0'
-  return new Intl.NumberFormat('id-ID').format(value)
+  return NUMBER_FMT.format(value)
 }
 
 // ── Coin Denominations ───────────────────────────────────────
@@ -87,21 +94,20 @@ export function emptyAllDenoms() {
 // ── Date & Time Formatting ───────────────────────────────────
 export function formatDate(value, options = {}) {
   if (!value) return '-'
-  const defaultOptions = { day: '2-digit', month: 'long', year: 'numeric', ...options }
-  return new Intl.DateTimeFormat('id-ID', defaultOptions).format(new Date(value))
+  if (Object.keys(options).length > 0) {
+    return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric', ...options }).format(new Date(value))
+  }
+  return DATE_FMT.format(new Date(value))
 }
 
 export function formatDateTime(value) {
   if (!value) return '-'
-  return new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  }).format(new Date(value))
+  return DATETIME_FMT.format(new Date(value))
 }
 
 export function formatTime(value) {
   if (!value) return '-'
-  return new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+  return TIME_FMT.format(new Date(value))
 }
 
 export function todayISO() {
@@ -133,16 +139,26 @@ export const ROLE_LABELS = {
 }
 
 // ── Misc Helpers ─────────────────────────────────────────────
-export function generateTrxNo(date, sequence) {
-  const d = new Date(date)
-  const pad = (n) => String(n).padStart(2, '0')
-  return `TRX-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${String(sequence).padStart(3, '0')}`
+/**
+ * Escape a value for CSV output (RFC 4180).
+ * Wraps in quotes if value contains comma, quote, or newline.
+ */
+export function csvCell(v) {
+  if (v == null) return ''
+  const s = String(v)
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
 }
 
-export function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max)
+/**
+ * Parse a Rupiah input string to a safe integer.
+ * Strips non-digits, clamps to MAX_RP to prevent JS precision loss.
+ */
+const MAX_RP = 1_000_000_000_000  // 1 triliun
+export function parseRp(raw) {
+  const n = parseInt(String(raw).replace(/\D/g, ''), 10) || 0
+  return Math.min(Math.max(n, 0), MAX_RP)
 }
-
 export function allTokoVisited(assignments) {
   return assignments.every((a) => a.status === 'selesai' || a.status === 'skip')
 }

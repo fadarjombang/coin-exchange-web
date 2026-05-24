@@ -10,3 +10,11 @@ build/
 Thumbs.db
 .vite/
 .vercel
+
+# AI tools & temp files
+.gemini/
+CLAUDE.md
+task-review/
+scratch.js
+*.sql.local
+

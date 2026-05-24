@@ -11,16 +11,16 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Receipt, Search, Download, Filter } from 'lucide-react'
-import { formatRupiah, formatNumber, formatDateTime, formatDate, todayISO, DENOM_LIST, UANG_LIST } from '@/lib/utils'
+import { formatRupiah, formatNumber, formatDateTime, formatDate, todayISO, DENOM_LIST, UANG_LIST, csvCell } from '@/lib/utils'
 
 export default function TransaksiPage() {
   const navigate = useNavigate()
-  const [rows, setRows]       = useState([])
-  const [areas, setAreas]     = useState([])
+  const [rows, setRows] = useState([])
+  const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
 
   // Filters
-  const [search, setSearch]     = useState('')
+  const [search, setSearch] = useState('')
   const [selectedArea, setSelectedArea] = useState('all')
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 30)
@@ -37,8 +37,8 @@ export default function TransaksiPage() {
     let q = supabase.from('transaksi')
       .select('*, toko:toko_id(kode_toko, nama_toko, area), kasir:kasir_id(name), sesi:sesi_tugas_id(tanggal)')
       .eq('jenis', 'field')
-      .gte('created_at', `${dateFrom}T00:00:00`)
-      .lte('created_at', `${dateTo}T23:59:59`)
+      .gte('created_at', new Date(`${dateFrom}T00:00:00+07:00`).toISOString())
+      .lte('created_at', new Date(`${dateTo}T23:59:59+07:00`).toISOString())
       .order('created_at', { ascending: false })
 
     const { data } = await q
@@ -69,7 +69,7 @@ export default function TransaksiPage() {
 
   // Summary stats
   const totalNilai = filtered.reduce((s, r) => s + (r.total_koin_nilai || 0), 0)
-  const totalUang  = filtered.reduce((s, r) => s + (r.total_uang_diterima || 0), 0)
+  const totalUang = filtered.reduce((s, r) => s + (r.total_uang_diterima || 0), 0)
   const adaSelisih = filtered.filter((r) => r.selisih !== 0).length
 
   // Pagination bounds
@@ -104,9 +104,9 @@ export default function TransaksiPage() {
       r.selisih || 0,
       r.pic_nama || '-'
     ])
-    const csv = [header, ...csvRows].map((row) => row.map(v => `"${v}"`).join(',')).join('\n')
+    const csv = '\uFEFF' + [header, ...csvRows].map((row) => row.map(csvCell).join(',')).join('\r\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url  = URL.createObjectURL(blob)
+    const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url
     a.download = `transaksi_lapangan_${dateFrom}_${dateTo}.csv`; a.click()
     URL.revokeObjectURL(url)
@@ -207,9 +207,9 @@ export default function TransaksiPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? Array.from({length:8}).map((_,i) => (
+                  {loading ? Array.from({ length: 8 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({length:19}).map((_,j) => <TableCell key={j}><Skeleton className="h-4 w-full"/></TableCell>)}
+                      {Array.from({ length: 19 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
                     </TableRow>
                   )) : paginatedData.length === 0 ? (
                     <TableRow>

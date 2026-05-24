@@ -35,7 +35,7 @@ export default function StokGudang() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     const [s, l] = await Promise.all([
-      supabase.from('stok_gudang').select('*').single(),
+      supabase.from('stok_gudang').select('*').maybeSingle(),
       supabase.from('stok_gudang_log').select('*').order('created_at', { ascending: false }).limit(30),
     ])
     if (s.data) { setStok(s.data); setForm(s.data) }
@@ -58,28 +58,24 @@ export default function StokGudang() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      // Build update: semua field adalah nilai Rp langsung
-      const update = ALL_DENOM_LIST.reduce((acc, d) => {
-        acc[d.key] = parseInt(form[d.key] || 0)
-        return acc
-      }, {})
-
-      // Delta total = selisih nilai baru vs lama
-      const newTotal = calculateStokTotal(form)
-      const oldTotal = calculateStokTotal(stok)
-      const deltaTotal = newTotal - oldTotal
-
-      const { error: updateErr } = await supabase.from('stok_gudang')
-        .update({ ...update, last_updated: new Date().toISOString(), updated_by: profile?.id })
-        .eq('id', stok.id)
-      if (updateErr) throw updateErr
-
-      await supabase.from('stok_gudang_log').insert({
-        tipe: 'penyesuaian',
-        keterangan: keterangan || 'Penyesuaian manual',
-        delta_total: deltaTotal,
-        created_by: profile?.id,
+      // Task 17: Gunakan update_stok_gudang (bukan update_stok_gudang_kantor)
+      // Kirim nilai absolut baru per denom
+      const { error: updateErr } = await supabase.rpc('update_stok_gudang', {
+        p_stok_id:    stok.id,
+        p_koin_100:   parseInt(form.koin_100   || 0),
+        p_koin_200:   parseInt(form.koin_200   || 0),
+        p_koin_500:   parseInt(form.koin_500   || 0),
+        p_koin_1000:  parseInt(form.koin_1000  || 0),
+        p_koin_2000:  parseInt(form.koin_2000  || 0),
+        p_koin_5000:  parseInt(form.koin_5000  || 0),
+        p_koin_10000: parseInt(form.koin_10000 || 0),
+        p_koin_20000: parseInt(form.koin_20000 || 0),
+        p_uang_50000:  parseInt(form.uang_50000  || 0),
+        p_uang_100000: parseInt(form.uang_100000 || 0),
+        p_keterangan: keterangan || 'Penyesuaian manual',
+        p_updated_by: profile?.id,
       })
+      if (updateErr) throw updateErr
 
       toast({ title: 'Berhasil', description: 'Stok gudang berhasil diperbarui', variant: 'success' })
       setEditMode(false); setKeterangan(''); fetchData()

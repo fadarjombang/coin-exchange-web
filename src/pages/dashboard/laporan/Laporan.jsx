@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { BarChart3, Search, Loader2, AlertTriangle, RefreshCw, Download, ArrowDownRight, Info, CheckCircle2 } from 'lucide-react'
-import { formatRupiah, formatDate, formatDateTime } from '@/lib/utils'
+import { formatRupiah, formatDate, formatDateTime, csvCell } from '@/lib/utils'
 
 function DateRangeFilter({ from, to, onFrom, onTo, onSearch, loading }) {
   return (
@@ -50,8 +50,12 @@ export default function Laporan() {
   const loadSkipAnalysis = useCallback(async () => {
     setLoadingSkip(true)
     try {
+      const sixMonthsAgo = new Date()
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+
       const { data: assignments, error } = await supabase.from('toko_assignment')
         .select('*, toko:toko_id(*), sesi:sesi_tugas_id(tanggal,status)')
+        .gte('updated_at', sixMonthsAgo.toISOString())
         .order('updated_at', { ascending: false })
 
       if (error) throw error
@@ -82,7 +86,7 @@ export default function Laporan() {
           storeMap[storeId].total_skipped += 1
           const reason = a.alasan_skip || 'Stok koin masih cukup'
           storeMap[storeId].reasons[reason] = (storeMap[storeId].reasons[reason] || 0) + 1
-          
+
           // Global reasons counter
           reasonCount[reason] = (reasonCount[reason] || 0) + 1
 
@@ -96,7 +100,7 @@ export default function Laporan() {
       const analysisList = Object.values(storeMap)
         .map((s) => {
           const ratio = s.total_visits > 0 ? Math.round((s.total_skipped / s.total_visits) * 100) : 0
-          
+
           // Cari alasan skip teratas
           let topReason = '-'
           let maxCount = 0
@@ -147,8 +151,8 @@ export default function Laporan() {
       s.top_reason,
       s.skip_ratio >= 50 && s.total_visits >= 2 ? 'TURUNKAN PRIORITAS' : 'EKSPERIMEN RISK'
     ])
-    
-    const csv = [header, ...csvRows].map((r) => r.map(v => `"${v}"`).join(',')).join('\n')
+
+    const csv = '\uFEFF' + [header, ...csvRows].map((r) => r.map(csvCell).join(',')).join('\r\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -211,7 +215,7 @@ export default function Laporan() {
 
           {/* TAB 1: OPTIMASI PRIORITAS KUNJUNGAN (SKIP ANALYSIS) */}
           <TabsContent value="optimasi" className="space-y-6">
-            
+
             {/* Highlight Alert Box */}
             <Card className="border-amber-200 bg-amber-50/50" id="tour-report-intro">
               <CardContent className="p-4 flex items-start gap-3">
@@ -275,7 +279,7 @@ export default function Laporan() {
 
             {/* Layout Grid (Table + Side Reasons stats) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+
               {/* Left Column: Stores skipped list table */}
               <div className="lg:col-span-2 space-y-4">
                 <Card id="tour-report-skipped-list">
@@ -325,44 +329,44 @@ export default function Laporan() {
                             const startIdx = (currentPage - 1) * ITEMS_PER_PAGE
                             const paginatedData = filteredSkipData.slice(startIdx, startIdx + ITEMS_PER_PAGE)
                             return paginatedData.map((item) => {
-                            const isCritical = item.skip_ratio >= 50 && item.total_visits >= 2
-                            return (
-                              <TableRow key={item.id}>
-                                <TableCell>
-                                  <p className="font-mono text-xs text-muted-foreground">{item.kode_toko}</p>
-                                  <p className="font-semibold text-sm">{item.nama_toko}</p>
-                                  <p className="text-[10px] text-muted-foreground">Area: {item.area || 'Tanpa Area'}</p>
-                                </TableCell>
-                                <TableCell className="text-center text-sm font-medium">{item.total_visits} kali</TableCell>
-                                <TableCell className="text-center text-sm font-semibold text-amber-700">{item.total_skipped} kali</TableCell>
-                                <TableCell>
-                                  <div className="space-y-1.5 w-24">
-                                    <div className="flex justify-between text-xs font-semibold">
-                                      <span className={item.skip_ratio >= 50 ? 'text-rose-600' : 'text-slate-600'}>{item.skip_ratio}%</span>
+                              const isCritical = item.skip_ratio >= 50 && item.total_visits >= 2
+                              return (
+                                <TableRow key={item.id}>
+                                  <TableCell>
+                                    <p className="font-mono text-xs text-muted-foreground">{item.kode_toko}</p>
+                                    <p className="font-semibold text-sm">{item.nama_toko}</p>
+                                    <p className="text-[10px] text-muted-foreground">Area: {item.area || 'Tanpa Area'}</p>
+                                  </TableCell>
+                                  <TableCell className="text-center text-sm font-medium">{item.total_visits} kali</TableCell>
+                                  <TableCell className="text-center text-sm font-semibold text-amber-700">{item.total_skipped} kali</TableCell>
+                                  <TableCell>
+                                    <div className="space-y-1.5 w-24">
+                                      <div className="flex justify-between text-xs font-semibold">
+                                        <span className={item.skip_ratio >= 50 ? 'text-rose-600' : 'text-slate-600'}>{item.skip_ratio}%</span>
+                                      </div>
+                                      <Progress value={item.skip_ratio} className={`h-1.5 ${item.skip_ratio >= 50 ? 'bg-rose-100 [&>div]:bg-rose-600' : ''}`} />
                                     </div>
-                                    <Progress value={item.skip_ratio} className={`h-1.5 ${item.skip_ratio >= 50 ? 'bg-rose-100 [&>div]:bg-rose-600' : ''}`} />
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  {isCritical ? (
-                                    <Badge variant="destructive" className="animate-pulse flex items-center gap-1 w-fit">
-                                      <ArrowDownRight size={10} /> Turunkan Prioritas
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="success" className="flex items-center gap-1 w-fit">
-                                      <CheckCircle2 size={10} /> Tetap Prioritas
-                                    </Badge>
-                                  )}
-                                  {item.top_reason && item.top_reason !== '-' && (
-                                    <p className="text-[10px] text-muted-foreground mt-1 truncate max-w-[150px]" title={item.top_reason}>
-                                      Alasan: {item.top_reason}
-                                    </p>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            )
-                          })
-                        })()
+                                  </TableCell>
+                                  <TableCell>
+                                    {isCritical ? (
+                                      <Badge variant="destructive" className="animate-pulse flex items-center gap-1 w-fit">
+                                        <ArrowDownRight size={10} /> Turunkan Prioritas
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="success" className="flex items-center gap-1 w-fit">
+                                        <CheckCircle2 size={10} /> Tetap Prioritas
+                                      </Badge>
+                                    )}
+                                    {item.top_reason && item.top_reason !== '-' && (
+                                      <p className="text-[10px] text-muted-foreground mt-1 truncate max-w-[150px]" title={item.top_reason}>
+                                        Alasan: {item.top_reason}
+                                      </p>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })
+                          })()
                         )}
                       </TableBody>
                     </Table>
@@ -439,26 +443,26 @@ export default function Laporan() {
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {[
                   { label: 'Total Sesi', value: data.length },
-                  { label: 'Koin Diserahkan', value: formatRupiah(data.flatMap(s=>s.transaksi||[]).reduce((a,t)=>a+(t.total_koin_nilai||0),0)) },
-                  { label: 'Uang Diterima', value: formatRupiah(data.flatMap(s=>s.transaksi||[]).reduce((a,t)=>a+(t.total_uang_diterima||0),0)) },
-                ].map(({label,value})=><Card key={label}><CardContent className="p-4"><p className="stat-label">{label}</p><p className="stat-value text-lg">{value}</p></CardContent></Card>)}
+                  { label: 'Koin Diserahkan', value: formatRupiah(data.flatMap(s => s.transaksi || []).reduce((a, t) => a + (t.total_koin_nilai || 0), 0)) },
+                  { label: 'Uang Diterima', value: formatRupiah(data.flatMap(s => s.transaksi || []).reduce((a, t) => a + (t.total_uang_diterima || 0), 0)) },
+                ].map(({ label, value }) => <Card key={label}><CardContent className="p-4"><p className="stat-label">{label}</p><p className="stat-value text-lg">{value}</p></CardContent></Card>)}
               </div>
             )}
             <Card><CardContent className="p-0">
               <Table><TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Kasir</TableHead><TableHead>Toko Dikunjungi</TableHead><TableHead>Total Koin</TableHead><TableHead>Total Uang</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {loading ? <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-                : data.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Tentukan rentang tanggal dan klik Tampilkan untuk melihat data</TableCell></TableRow>
-                : data.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>{formatDate(s.tanggal)}</TableCell>
-                    <TableCell>{s.kasir?.name}</TableCell>
-                    <TableCell>{s.transaksi?.length || 0} toko</TableCell>
-                    <TableCell>{formatRupiah(s.transaksi?.reduce((a,t)=>a+(t.total_koin_nilai||0),0))}</TableCell>
-                    <TableCell>{formatRupiah(s.transaksi?.reduce((a,t)=>a+(t.total_uang_diterima||0),0))}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody></Table>
+                <TableBody>
+                  {loading ? <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                    : data.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Tentukan rentang tanggal dan klik Tampilkan untuk melihat data</TableCell></TableRow>
+                      : data.map((s) => (
+                        <TableRow key={s.id}>
+                          <TableCell>{formatDate(s.tanggal)}</TableCell>
+                          <TableCell>{s.kasir?.name}</TableCell>
+                          <TableCell>{s.transaksi?.length || 0} toko</TableCell>
+                          <TableCell>{formatRupiah(s.transaksi?.reduce((a, t) => a + (t.total_koin_nilai || 0), 0))}</TableCell>
+                          <TableCell>{formatRupiah(s.transaksi?.reduce((a, t) => a + (t.total_uang_diterima || 0), 0))}</TableCell>
+                        </TableRow>
+                      ))}
+                </TableBody></Table>
             </CardContent></Card>
           </TabsContent>
         </Tabs>

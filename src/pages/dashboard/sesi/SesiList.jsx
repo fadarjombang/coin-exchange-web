@@ -15,17 +15,17 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/hooks/use-toast'
 import { generateSuratTugasPDF } from '@/lib/pdfHelper'
 
-const STATUS_LIST = ['all','draft','pending_approval','active','pending_close','closed']
+const STATUS_LIST = ['all', 'draft', 'pending_approval', 'active', 'pending_close', 'closed']
 
 export default function SesiList() {
   const { role } = useAuth()
   const { toast } = useToast()
   const roles = Array.isArray(role) ? role : [role]
-  const navigate  = useNavigate()
-  const [sesi, setSesi]         = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [filter, setFilter]     = useState('all')
-  const [search, setSearch]     = useState('')
+  const navigate = useNavigate()
+  const [sesi, setSesi] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('all')
+  const [search, setSearch] = useState('')
   const [selectedSesi, setSelectedSesi] = useState([])
   const [pdfLoading, setPdfLoading] = useState(false)
 
@@ -35,7 +35,7 @@ export default function SesiList() {
       .from('sesi_tugas')
       .select('*, kasir:kasir_id(name), driver:driver_id(name), mobil:mobil_id(nopol), modal_koin(total_nilai), toko_assignment(id), rekonsiliasi(id)')
       .order('created_at', { ascending: false })
-      
+
     // Map status: Jika aktif tapi sudah ada rekonsiliasi, treat sebagai pending_close
     const mapped = (data || []).map(s => ({
       ...s,
@@ -70,7 +70,7 @@ export default function SesiList() {
           rekonsiliasi(*)`)
         .in('id', selectedSesi)
       if (error) throw error
-      
+
       const sortedData = data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
       await generateSuratTugasPDF(sortedData, setPdfLoading, toast)
       setSelectedSesi([])
@@ -140,10 +140,10 @@ export default function SesiList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? Array.from({length:5}).map((_,i)=>(
+                {loading ? Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-4"/></TableCell>
-                    {Array.from({length:8}).map((_,j)=><TableCell key={j}><Skeleton className="h-4 w-full"/></TableCell>)}
+                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                    {Array.from({ length: 8 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
                   </TableRow>
                 )) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Tidak ada sesi ditemukan</TableCell></TableRow>

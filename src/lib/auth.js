@@ -1,4 +1,5 @@
-import { supabase, supabaseAdmin } from './supabase'
+import { supabase } from './supabase'
+import { adminApi } from './adminApi'
 
 /**
  * Sign in a user with NIK + password.
@@ -21,6 +22,7 @@ export async function signOut() {
 
 /**
  * Fetch user profile from public.users by auth UUID.
+ * Returns null (and triggers sign-out) if account is inactive.
  */
 export async function getProfile(userId) {
   const { data, error } = await supabase
@@ -29,6 +31,7 @@ export async function getProfile(userId) {
     .eq('id', userId)
     .single()
   if (error) throw error
+  if (!data?.is_active) return null
   return data
 }
 
@@ -42,39 +45,18 @@ export async function getSession() {
 }
 
 /**
- * Create a new user account in Supabase Auth + users table.
- * Only callable by superadmin (uses service role key via supabaseAdmin).
+ * Create a new user account via Edge Function (server-side only).
+ * Only callable by superadmin.
  */
 export async function createUser({ nik, name, role, password }) {
-  const email = `${nik}@coin.internal`
-
-  // 1. Create auth user via admin client (service role bypasses email confirmation)
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  })
-  if (authError) throw authError
-
-  // 2. Insert profile into public.users
-  const { data, error } = await supabase
-    .from('users')
-    .insert({ id: authData.user.id, nik, name, role })
-    .select()
-    .single()
-  if (error) throw error
-
-  return data
+  return adminApi.createUser({ nik, name, role, password })
 }
 
 /**
- * Reset a user's password (superadmin only, uses service role).
+ * Reset a user's password via Edge Function (superadmin only).
  */
 export async function resetPassword(userId, newPassword) {
-  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-    password: newPassword,
-  })
-  if (error) throw error
+  return adminApi.resetPassword(userId, newPassword)
 }
 
 /**

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
-import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -10,14 +9,14 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Store, Plus, Search, History, Upload, Loader2, Download } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { supabaseAdmin } from '@/lib/supabase'
+import DashboardLayout from '@/components/layout/DashboardLayout'
 
 export default function TokoList() {
-  const navigate  = useNavigate()
+  const navigate = useNavigate()
   const { toast } = useToast()
-  const [toko, setToko]       = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [search, setSearch]     = useState('')
+  const [toko, setToko] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
   const [importing, setImporting] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
@@ -41,18 +40,18 @@ export default function TokoList() {
     try {
       // Lazy-load SheetJS
       const XLSX = await import('xlsx')
-      const buf  = await file.arrayBuffer()
-      const wb   = XLSX.read(buf, { type: 'array' })
-      const ws   = wb.Sheets[wb.SheetNames[0]]
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
       const json = XLSX.utils.sheet_to_json(ws, { defval: '' })
 
       const rows = json.map((r) => ({
         kode_toko: String(r['kode_toko'] || r['Kode Toko'] || r['KODE_TOKO'] || '').trim(),
         nama_toko: String(r['nama_toko'] || r['Nama Toko'] || r['NAMA_TOKO'] || '').trim(),
-        area:      String(r['area']      || r['Area']      || '').trim() || null,
-        alamat:    String(r['alamat']    || r['Alamat']    || '').trim() || null,
-        as:        String(r['as']        || r['AS']        || r['Area Supervisor'] || '').trim() || null,
-        am:        String(r['am']        || r['AM']        || r['Area Manager']    || '').trim() || null,
+        area: String(r['area'] || r['Area'] || '').trim() || null,
+        alamat: String(r['alamat'] || r['Alamat'] || '').trim() || null,
+        as: String(r['as'] || r['AS'] || r['Area Supervisor'] || '').trim() || null,
+        am: String(r['am'] || r['AM'] || r['Area Manager'] || '').trim() || null,
         is_active: true,
       })).filter((r) => r.kode_toko && r.nama_toko)
 
@@ -61,7 +60,7 @@ export default function TokoList() {
         return
       }
 
-      const { error } = await supabaseAdmin.from('toko').upsert(rows, { onConflict: 'kode_toko' })
+      const { error } = await supabase.from('toko').upsert(rows, { onConflict: 'kode_toko' })
       if (error) throw error
 
       toast({ title: `${rows.length} toko berhasil diimpor`, variant: 'success' })
@@ -81,10 +80,10 @@ export default function TokoList() {
       { 'Kode Toko': 'IDFM-992', 'Nama Toko': 'Indomaret Contoh 2', 'Area': 'Surabaya', 'Alamat': 'Jl. Sample No. 45', 'AS': 'Supervisor B', 'AM': 'Manager B' }
     ]
     const ws = XLSX.utils.json_to_sheet(data)
-    
+
     // Auto-size columns slightly
     ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 40 }, { wch: 20 }, { wch: 20 }]
-    
+
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Template Toko')
     XLSX.writeFile(wb, 'Template_Master_Toko.xlsx')
@@ -147,8 +146,8 @@ export default function TokoList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? Array.from({length:5}).map((_,i)=>(
-                  <TableRow key={i}>{Array.from({length:6}).map((_,j)=><TableCell key={j}><Skeleton className="h-4 w-full"/></TableCell>)}</TableRow>
+                {loading ? Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>{Array.from({ length: 6 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
                 )) : paginatedToko.length === 0 ? (
                   <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Tidak ada toko ditemukan</TableCell></TableRow>
                 ) : paginatedToko.map((t) => (
@@ -157,10 +156,10 @@ export default function TokoList() {
                     <TableCell>{t.nama_toko}</TableCell>
                     <TableCell>{t.area || '-'}</TableCell>
                     <TableCell className="text-muted-foreground text-sm max-w-xs truncate">{t.alamat || '-'}</TableCell>
-                    <TableCell><Badge variant={t.is_active ? 'success':'destructive'}>{t.is_active?'Aktif':'Nonaktif'}</Badge></TableCell>
+                    <TableCell><Badge variant={t.is_active ? 'success' : 'destructive'}>{t.is_active ? 'Aktif' : 'Nonaktif'}</Badge></TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={(e)=>{e.stopPropagation();navigate(`/dashboard/toko/${t.id}/riwayat`)}}>
-                        <History size={14}/> Riwayat
+                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/toko/${t.id}/riwayat`) }}>
+                        <History size={14} /> Riwayat
                       </Button>
                     </TableCell>
                   </TableRow>

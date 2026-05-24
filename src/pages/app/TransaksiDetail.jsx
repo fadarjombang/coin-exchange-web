@@ -8,8 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Download, Loader2 } from 'lucide-react'
 import { formatRupiah, formatDateTime, DENOM_LIST } from '@/lib/utils'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 
 export default function TransaksiDetail() {
   const { transaksiId } = useParams()
@@ -40,6 +38,10 @@ export default function TransaksiDetail() {
     try {
       const el = pdfRef.current
       if (!el) return
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
       const canvas = await html2canvas(el, {
         scale: 2, useCORS: true, logging: false,
         windowWidth: el.scrollWidth, windowHeight: el.scrollHeight,

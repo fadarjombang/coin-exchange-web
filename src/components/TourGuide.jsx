@@ -1,21 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Joyride } from 'react-joyride'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocation } from 'react-router-dom'
 
-// Simple helper: has tour been completed?
-function isTourDone() {
-  return (
-    localStorage.getItem('tour_completed_admin_onboarding') === 'true' ||
-    localStorage.getItem('tour_completed_manager_onboarding') === 'true'
-  )
+// Simple helper: has tour been completed for a specific role?
+function isTourDone(role) {
+  return localStorage.getItem(`tour_completed_${role}`) === 'true'
 }
 
-// Simple helper: mark tour as done forever
-function markTourDone() {
-  localStorage.setItem('tour_completed_admin_onboarding', 'true')
-  localStorage.setItem('tour_completed_manager_onboarding', 'true')
-  localStorage.removeItem('admin_onboarding_active')
+// Simple helper: mark tour as done for a specific role
+function markTourDone(role) {
+  localStorage.setItem(`tour_completed_${role}`, 'true')
+  localStorage.removeItem(`${role}_onboarding_active`)
 }
 
 export default function TourGuide() {
@@ -23,6 +19,7 @@ export default function TourGuide() {
   const location = useLocation()
   const [run, setRun] = useState(false)
   const [steps, setSteps] = useState([])
+  const currentRoleRef = useRef('admin')
 
   useEffect(() => {
     if (loading || !isAuthenticated) return
@@ -32,6 +29,7 @@ export default function TourGuide() {
     if (roles.includes('superadmin')) currentRole = 'superadmin'
     else if (roles.includes('admin')) currentRole = 'admin'
     else if (roles.includes('manager')) currentRole = 'manager'
+    currentRoleRef.current = currentRole
 
     // No tour for kasir or superadmin
     if (currentRole === 'kasir' || currentRole === 'superadmin') {
@@ -40,17 +38,17 @@ export default function TourGuide() {
       return
     }
 
-    // If tour already completed, never show again
-    if (isTourDone()) {
+    // If tour already completed for this role, never show again
+    if (isTourDone(currentRole)) {
       setRun(false)
       setSteps([])
       return
     }
 
     // Start active flow on dashboard
-    let activeFlow = localStorage.getItem('admin_onboarding_active')
+    let activeFlow = localStorage.getItem(`${currentRole}_onboarding_active`)
     if (!activeFlow && location.pathname === '/dashboard') {
-      localStorage.setItem('admin_onboarding_active', 'true')
+      localStorage.setItem(`${currentRole}_onboarding_active`, 'true')
       activeFlow = 'true'
     }
 
@@ -191,40 +189,33 @@ export default function TourGuide() {
 
   const handleJoyrideCallback = (data) => {
     const { status, action, type, index, size } = data
-
-    // Log EVERYTHING - this is critical for debugging
-    console.log('[TourGuide] CB:', status, action, type, 'step:', index, '/', size, 'path:', location.pathname)
+    const currentRole = currentRoleRef.current
 
     // Method 1: Standard finished/skipped detection
     if (status === 'finished' || status === 'skipped') {
-      console.log('[TourGuide] >>> DONE via status:', status)
       setRun(false)
-      markTourDone()
+      markTourDone(currentRole)
       return
     }
 
     // Method 2: Close/skip action detection
     if (action === 'close' || action === 'skip' || action === 'reset') {
-      console.log('[TourGuide] >>> DONE via action:', action)
       setRun(false)
-      markTourDone()
+      markTourDone(currentRole)
       return
     }
 
     // Method 3: Detect user clicking "Selesai" on the LAST step
-    // In continuous mode, clicking "Last" button fires action='next' on the last step
     if (action === 'next' && type === 'step:after' && index === size - 1) {
-      console.log('[TourGuide] >>> DONE via last step click (index:', index, 'size:', size, ')')
       setRun(false)
-      markTourDone()
+      markTourDone(currentRole)
       return
     }
 
     // Method 4: Detect tour:end event type
     if (type === 'tour:end') {
-      console.log('[TourGuide] >>> DONE via tour:end')
       setRun(false)
-      markTourDone()
+      markTourDone(currentRole)
       return
     }
   }

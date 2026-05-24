@@ -27,7 +27,7 @@ export default function Riwayat() {
   useEffect(()=>{load()},[load])
 
   return (
-    <MobileLayout title="Riwayat Hari Ini">
+    <MobileLayout title="Riwayat Sesi Terakhir">
       <div className="p-4 space-y-3">
         {!loading && trx.length > 0 && (
           <Card className="bg-primary/5 border-primary/20">

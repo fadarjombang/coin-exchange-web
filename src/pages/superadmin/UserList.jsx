@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
+import { adminApi } from '@/lib/adminApi'
 import { ROLE_LABELS, formatDateTime } from '@/lib/utils'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
@@ -46,17 +47,8 @@ export default function UserList() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      // Step 1: Nonaktifkan user di public.users (preserve historical data / FK)
-      const { error: deactivateErr } = await supabase
-        .from('users')
-        .update({ is_active: false })
-        .eq('id', deleteTarget.id)
-      if (deactivateErr) throw deactivateErr
-
-      // Step 2: Hapus dari auth.users agar tidak bisa login lagi
-      const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(deleteTarget.id)
-      if (authErr) throw authErr
-
+      // Task 25: single flow via Edge Function (no duplicate deactivate here)
+      await adminApi.deleteUser(deleteTarget.id)
       toast({ title: 'Berhasil', description: `Akun ${deleteTarget.name} telah dihapus.`, variant: 'success' })
       setDeleteTarget(null)
       fetchUsers()

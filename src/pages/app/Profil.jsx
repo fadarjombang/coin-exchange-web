@@ -10,6 +10,7 @@ import { ROLE_LABELS } from '@/lib/utils'
 
 export default function AppProfil() {
   const { profile, role, signOut } = useAuth(); const navigate = useNavigate()
+  const roles = Array.isArray(role) ? role : [role]
   const handleLogout = async () => { await signOut(); navigate('/login') }
   return (
     <MobileLayout title="Profil Saya">
@@ -19,7 +20,7 @@ export default function AppProfil() {
             <span className="text-white text-3xl font-bold">{profile?.name?.charAt(0)?.toUpperCase()}</span>
           </div>
           <h2 className="text-lg font-bold">{profile?.name}</h2>
-          <Badge variant="info" className="mt-1">{ROLE_LABELS[role]}</Badge>
+          <Badge variant="info" className="mt-1">{roles.map(r => ROLE_LABELS[r] || r).join(' & ')}</Badge>
         </div>
         <Card>
           <CardContent className="p-4 space-y-3">

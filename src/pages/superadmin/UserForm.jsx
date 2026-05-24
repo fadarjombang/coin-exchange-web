@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
+import { adminApi } from '@/lib/adminApi'
 import { ROLE_LABELS } from '@/lib/utils'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
@@ -65,19 +66,16 @@ export default function UserForm() {
         if (error) throw error
         // Optionally reset password
         if (form.password) {
-          await supabaseAdmin.auth.admin.updateUserById(id, { password: form.password })
+          await adminApi.resetPassword(id, form.password)
         }
         toast({ title: 'Berhasil', description: 'Akun berhasil diperbarui', variant: 'success' })
       } else {
-        // Create via Supabase Auth admin API
-        const email = `${form.nik}@coin.internal`
-        const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-          email, password: form.password, email_confirm: true,
+        // Create via Edge Function (server-side, no service key in browser)
+        const result = await adminApi.createUser({
+          nik: form.nik, name: form.name, role: form.role,
+          password: form.password, foto_profil: form.foto_profil,
         })
-        if (authErr) throw authErr
-        const { error: dbErr } = await supabase.from('users')
-          .insert({ id: authData.user.id, nik: form.nik, name: form.name, role: form.role, foto_profil: form.foto_profil })
-        if (dbErr) throw dbErr
+        if (result.error) throw new Error(result.error)
         toast({ title: 'Berhasil', description: 'Akun berhasil dibuat', variant: 'success' })
       }
       navigate('/superadmin')

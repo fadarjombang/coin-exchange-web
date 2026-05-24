@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Loader2, Plus, Building, Coins, Banknote, Search, Download } from 'lucide-react'
-import { formatRupiah, formatNumber, formatDateTime, DENOM_LIST, UANG_LIST } from '@/lib/utils'
+import { formatRupiah, formatNumber, formatDateTime, DENOM_LIST, UANG_LIST, csvCell } from '@/lib/utils'
 
 export default function KantorTransaksi() {
   const { role } = useAuth()
@@ -32,8 +32,8 @@ export default function KantorTransaksi() {
       .from('transaksi')
       .select('*, toko:toko_id(kode_toko, nama_toko, area)')
       .eq('jenis', 'kantor')
-      .gte('tanggal_waktu', from + 'T00:00:00')
-      .lte('tanggal_waktu', to + 'T23:59:59')
+      .gte('tanggal_waktu', new Date(`${from}T00:00:00+07:00`).toISOString())
+      .lte('tanggal_waktu', new Date(`${to}T23:59:59+07:00`).toISOString())
       .order('tanggal_waktu', { ascending: false })
     setData(trx || [])
     setLoading(false)
@@ -79,7 +79,7 @@ export default function KantorTransaksi() {
       ...UANG_LIST.map(u => t[u.key] || 0),
       t.total_uang_diterima || 0
     ])
-    const csv = [header, ...csvRows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+    const csv = '\uFEFF' + [header, ...csvRows].map(r => r.map(csvCell).join(',')).join('\r\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
