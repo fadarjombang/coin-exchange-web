@@ -37,9 +37,10 @@ export default function SesiList() {
       .order('created_at', { ascending: false })
 
     // Map status: Jika aktif tapi sudah ada rekonsiliasi, treat sebagai pending_close
+    // Catatan: rekonsiliasi adalah array dari Supabase — harus cek .length > 0, bukan truthy biasa
     const mapped = (data || []).map(s => ({
       ...s,
-      status: (s.status === 'active' && s.rekonsiliasi) ? 'pending_close' : s.status
+      status: (s.status === 'active' && s.rekonsiliasi?.length > 0) ? 'pending_close' : s.status
     }))
     setSesi(mapped)
     setLoading(false)

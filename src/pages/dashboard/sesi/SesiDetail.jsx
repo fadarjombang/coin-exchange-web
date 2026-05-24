@@ -104,7 +104,7 @@ export default function SesiDetail() {
   )
 
   const rawStatus = sesi?.status
-  const rek    = sesi?.rekonsiliasi
+  const rek    = sesi?.rekonsiliasi?.[0] ?? null   // ambil elemen pertama, null jika kosong
   const status = (rawStatus === 'active' && rek) ? 'pending_close' : rawStatus
   
   const isAdmin           = roles.includes('admin') || roles.includes('superadmin')
