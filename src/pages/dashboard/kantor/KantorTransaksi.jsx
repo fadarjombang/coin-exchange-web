@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Loader2, Plus, Building, Coins, Banknote, Search, Download } from 'lucide-react'
-import { formatRupiah, formatNumber, formatDateTime, DENOM_LIST, UANG_LIST, csvCell } from '@/lib/utils'
+import { formatRupiah, formatNumber, formatDateTime, DENOM_LIST, UANG_LIST, csvCell, todayISO } from '@/lib/utils'
+
 
 export default function KantorTransaksi() {
   const { role } = useAuth()
@@ -17,9 +18,8 @@ export default function KantorTransaksi() {
   const isAdmin = roles.includes('admin') || roles.includes('superadmin')
 
   const navigate = useNavigate()
-  const today = new Date().toISOString().split('T')[0]
-  const [from, setFrom] = useState(today)
-  const [to, setTo] = useState(today)
+  const [from, setFrom] = useState(todayISO)
+  const [to, setTo]     = useState(todayISO)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState([])
   const [search, setSearch] = useState('')

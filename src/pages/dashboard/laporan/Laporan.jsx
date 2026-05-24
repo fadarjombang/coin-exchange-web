@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { BarChart3, Search, Loader2, AlertTriangle, RefreshCw, Download, ArrowDownRight, Info, CheckCircle2 } from 'lucide-react'
-import { formatRupiah, formatDate, formatDateTime, csvCell } from '@/lib/utils'
+import { formatRupiah, formatDate, formatDateTime, csvCell, todayISO } from '@/lib/utils'
 
 function DateRangeFilter({ from, to, onFrom, onTo, onSearch, loading }) {
   return (
@@ -23,9 +23,8 @@ function DateRangeFilter({ from, to, onFrom, onTo, onSearch, loading }) {
 }
 
 export default function Laporan() {
-  const today = new Date().toISOString().split('T')[0]
-  const [from, setFrom] = useState(today)
-  const [to, setTo] = useState(today)
+  const [from, setFrom] = useState(todayISO)
+  const [to, setTo]     = useState(todayISO)
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('optimasi') // default ke tab optimasi untuk menunjukkan fitur baru!

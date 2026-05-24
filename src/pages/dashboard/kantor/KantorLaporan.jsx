@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Loader2, Download, Search, Building, Coins, Banknote } from 'lucide-react'
-import { formatRupiah } from '@/lib/utils'
+import { formatRupiah, todayISO } from '@/lib/utils'
 
 function DateRangeFilter({ from, to, onFrom, onTo, onSearch, loading }) {
   return (
@@ -20,9 +20,8 @@ function DateRangeFilter({ from, to, onFrom, onTo, onSearch, loading }) {
 }
 
 export default function KantorLaporan() {
-  const today = new Date().toISOString().split('T')[0]
-  const [from, setFrom] = useState(today)
-  const [to, setTo] = useState(today)
+  const [from, setFrom] = useState(todayISO)
+  const [to, setTo]     = useState(todayISO)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState([])
 
