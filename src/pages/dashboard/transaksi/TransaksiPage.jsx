@@ -19,34 +19,39 @@ export default function TransaksiPage() {
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Filters
-  const [search, setSearch] = useState('')
+  // Filter inputs (belum di-apply)
+  const [search, setSearch]           = useState('')
   const [selectedArea, setSelectedArea] = useState('all')
-  const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 30)
-    return d.toISOString().split('T')[0]
-  })
-  const [dateTo, setDateTo] = useState(todayISO())
+  const [dateFrom, setDateFrom]         = useState(todayISO)
+  const [dateTo, setDateTo]             = useState(todayISO)
+
+  // Filter aktif — berubah hanya saat tombol Terapkan diklik
+  const [activeFrom, setActiveFrom]     = useState(todayISO)
+  const [activeTo, setActiveTo]         = useState(todayISO)
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  const fetch = useCallback(async () => {
+  // Fetch hanya menggunakan activeFrom/activeTo (bukan dateFrom/dateTo)
+  const fetch = useCallback(async (from, to) => {
     setLoading(true)
-    let q = supabase.from('transaksi')
+    const { data } = await supabase.from('transaksi')
       .select('*, toko:toko_id(kode_toko, nama_toko, area), kasir:kasir_id(name), sesi:sesi_tugas_id(tanggal)')
       .eq('jenis', 'field')
-      .gte('created_at', new Date(`${dateFrom}T00:00:00+07:00`).toISOString())
-      .lte('created_at', new Date(`${dateTo}T23:59:59+07:00`).toISOString())
+      .gte('created_at', new Date(`${from}T00:00:00+07:00`).toISOString())
+      .lte('created_at', new Date(`${to}T23:59:59+07:00`).toISOString())
       .order('created_at', { ascending: false })
-
-    const { data } = await q
     setRows(data || [])
     setLoading(false)
-  }, [dateFrom, dateTo])
+  }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  // Fetch data hari ini saat pertama kali mount
+  useEffect(() => {
+    fetch(todayISO(), todayISO())
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     supabase.from('toko').select('area')
       .then(({ data }) => {
@@ -55,9 +60,15 @@ export default function TransaksiPage() {
       })
   }, [])
 
-  useEffect(() => {
+  useEffect(() => { setCurrentPage(1) }, [search, selectedArea, activeFrom, activeTo])
+
+  // Handler tombol Terapkan — apply filter + fetch
+  const handleApply = () => {
+    setActiveFrom(dateFrom)
+    setActiveTo(dateTo)
     setCurrentPage(1)
-  }, [search, selectedArea, dateFrom, dateTo])
+    fetch(dateFrom, dateTo)
+  }
 
   const filtered = rows.filter((r) => {
     const matchesSearch = !search || r.toko?.nama_toko?.toLowerCase().includes(search.toLowerCase())
@@ -67,17 +78,16 @@ export default function TransaksiPage() {
     return matchesSearch && matchesArea
   })
 
-  // Summary stats
-  const totalNilai = filtered.reduce((s, r) => s + (r.total_koin_nilai || 0), 0)
-  const totalUang = filtered.reduce((s, r) => s + (r.total_uang_diterima || 0), 0)
-  const adaSelisih = filtered.filter((r) => r.selisih !== 0).length
+  const totalNilai    = filtered.reduce((s, r) => s + (r.total_koin_nilai || 0), 0)
+  const totalUang     = filtered.reduce((s, r) => s + (r.total_uang_diterima || 0), 0)
+  const adaSelisih    = filtered.filter((r) => r.selisih !== 0).length
 
-  // Pagination bounds
-  const totalPages = Math.ceil(filtered.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
+  const totalPages    = Math.ceil(filtered.length / itemsPerPage)
+  const startIndex    = (currentPage - 1) * itemsPerPage
   const paginatedData = filtered.slice(startIndex, startIndex + itemsPerPage)
 
   const handleExport = () => {
+
     const header = [
       'Tanggal & Waktu',
       'Kode Toko',
@@ -108,7 +118,7 @@ export default function TransaksiPage() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url
-    a.download = `transaksi_lapangan_${dateFrom}_${dateTo}.csv`; a.click()
+    a.download = `transaksi_lapangan_${activeFrom}_${activeTo}.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 
@@ -173,7 +183,7 @@ export default function TransaksiPage() {
                   <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nama / kode toko / kasir..." className="h-9 pl-8" />
                 </div>
               </div>
-              <Button size="sm" onClick={fetch} id="btn-terapkan-filter"><Filter size={14} /> Terapkan</Button>
+              <Button size="sm" onClick={handleApply} id="btn-terapkan-filter"><Filter size={14} /> Terapkan</Button>
             </div>
           </CardContent>
         </Card>

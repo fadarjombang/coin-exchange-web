@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff, Coins, AlertCircle, Loader2 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -8,17 +8,28 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function Login() {
-  const { signIn } = useAuth()
+  const { signIn, isAuthenticated, loading, role } = useAuth()
   const navigate   = useNavigate()
   const location   = useLocation()
 
   const [nik, setNik]           = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
-  const [loading, setLoading]   = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
   const [error, setError]       = useState('')
 
   const from = location.state?.from?.pathname
+
+  // Navigasi otomatis saat isAuthenticated berubah jadi true
+  // (termasuk setelah signIn selesai memuat profile)
+  useEffect(() => {
+    if (loading || !isAuthenticated) return
+    const roles = Array.isArray(role) ? role : [role]
+    if (roles.includes('superadmin'))                          { navigate('/superadmin', { replace: true }); return }
+    if (roles.includes('admin') || roles.includes('manager'))  { navigate(from || '/dashboard', { replace: true }); return }
+    if (roles.includes('kasir'))                               { navigate(from || '/app', { replace: true }); return }
+    navigate(from || '/', { replace: true })
+  }, [isAuthenticated, loading, role, navigate, from])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -27,10 +38,10 @@ export default function Login() {
     if (!password.trim()) return setError('Password harus diisi.')
     if (nik.length < 8)   return setError('NIK minimal 8 digit.')
 
-    setLoading(true)
+    setLoginLoading(true)
     try {
       await signIn(nik.trim(), password)
-      navigate(from || '/', { replace: true })
+      // Navigasi ditangani oleh useEffect di atas yang watch isAuthenticated
     } catch (err) {
       if (err.message?.includes('Invalid login credentials')) {
         setError('NIK atau password salah.')
@@ -38,7 +49,7 @@ export default function Login() {
         setError('Gagal login. Periksa koneksi internet Anda.')
       }
     } finally {
-      setLoading(false)
+      setLoginLoading(false)
     }
   }
 
@@ -85,7 +96,7 @@ export default function Login() {
                   placeholder="Masukkan NIK (8-16 digit)"
                   className="bg-white/15 border-white/25 text-white placeholder:text-white/40 focus-visible:ring-white/50 focus-visible:border-white/40"
                   autoComplete="username"
-                  disabled={loading}
+                  disabled={loginLoading}
                   required
                 />
               </div>
@@ -102,7 +113,7 @@ export default function Login() {
                     placeholder="Masukkan password"
                     className="bg-white/15 border-white/25 text-white placeholder:text-white/40 focus-visible:ring-white/50 pr-10"
                     autoComplete="current-password"
-                    disabled={loading}
+                    disabled={loginLoading}
                     required
                   />
                   <button
@@ -128,10 +139,10 @@ export default function Login() {
               <Button
                 id="login-submit"
                 type="submit"
-                disabled={loading}
+                disabled={loginLoading}
                 className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold h-11 shadow-lg mt-2"
               >
-                {loading ? (
+                {loginLoading ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
                     Masuk...

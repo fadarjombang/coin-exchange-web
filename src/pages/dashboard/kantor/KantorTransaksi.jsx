@@ -18,32 +18,41 @@ export default function KantorTransaksi() {
   const isAdmin = roles.includes('admin') || roles.includes('superadmin')
 
   const navigate = useNavigate()
-  const [from, setFrom] = useState(todayISO)
-  const [to, setTo]     = useState(todayISO)
+  const [from, setFrom]   = useState(todayISO)
+  const [to, setTo]       = useState(todayISO)
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState([])
+  const [data, setData]   = useState([])
   const [search, setSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  const loadData = useCallback(async () => {
+  // Fetch menerima parameter eksplisit — tidak bergantung pada state from/to
+  const loadData = useCallback(async (dateFrom, dateTo) => {
     setLoading(true)
     const { data: trx } = await supabase
       .from('transaksi')
       .select('*, toko:toko_id(kode_toko, nama_toko, area)')
       .eq('jenis', 'kantor')
-      .gte('tanggal_waktu', new Date(`${from}T00:00:00+07:00`).toISOString())
-      .lte('tanggal_waktu', new Date(`${to}T23:59:59+07:00`).toISOString())
+      .gte('tanggal_waktu', new Date(`${dateFrom}T00:00:00+07:00`).toISOString())
+      .lte('tanggal_waktu', new Date(`${dateTo}T23:59:59+07:00`).toISOString())
       .order('tanggal_waktu', { ascending: false })
     setData(trx || [])
     setLoading(false)
-  }, [from, to])
+  }, [])
 
-  useEffect(() => { loadData() }, [loadData])
-
+  // Saat mount — hanya fetch hari ini
   useEffect(() => {
+    loadData(todayISO(), todayISO())
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => { setCurrentPage(1) }, [from, to, search])
+
+  // Handler tombol Tampilkan
+  const handleSearch = () => {
     setCurrentPage(1)
-  }, [from, to, search])
+    loadData(from, to)
+  }
 
   const filtered = data.filter(t =>
     !search ||
@@ -179,7 +188,7 @@ export default function KantorTransaksi() {
                   />
                 </div>
               </div>
-              <Button size="sm" onClick={loadData} disabled={loading}>
+              <Button size="sm" onClick={handleSearch} disabled={loading}>
                 {loading && <Loader2 size={14} className="animate-spin mr-1" />}
                 Tampilkan
               </Button>

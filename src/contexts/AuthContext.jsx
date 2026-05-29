@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
+import { createContext, useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { getProfile, signIn as authSignIn, signOut as authSignOut } from '../lib/auth'
 
-const AuthContext = createContext(null)
+export const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
@@ -10,81 +10,64 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const reqId = useRef(0)
 
-  // Fetch profile after auth user is known — generation counter prevents stale updates
-  const loadProfile = useCallback(async (authUser) => {
-    const myId = ++reqId.current
-    if (!authUser) {
-      if (myId === reqId.current) setProfile(null)
-      return
-    }
-    try {
-      const p = await getProfile(authUser.id)
-      if (myId !== reqId.current) return  // stale, discard
-      if (!p) {
-        // Account deactivated — force sign out
-        await authSignOut()
+  useEffect(() => {
+    // Fetch profile di luar onAuthStateChange callback agar tidak deadlock
+    // dengan internal auth lock milik Supabase JS client.
+    async function handleSession(session) {
+      const myId = ++reqId.current
+
+      if (!session?.user) {
+        setUser(null)
         setProfile(null)
+        setLoading(false)
         return
       }
-      setProfile(p)
-    } catch (err) {
-      console.error('Failed to load profile:', err)
-      if (myId === reqId.current) setProfile(null)
+
+      setUser(session.user)
+      try {
+        const p = await getProfile(session.user.id)
+        if (myId !== reqId.current) return   // stale, discard
+        if (!p) {
+          await authSignOut()
+          setUser(null)
+          setProfile(null)
+        } else {
+          setProfile(p)
+        }
+      } catch (err) {
+        console.error('getProfile error:', err)
+        if (myId === reqId.current) setProfile(null)
+      } finally {
+        if (myId === reqId.current) setLoading(false)
+      }
     }
-  }, [])
 
-  // On mount — check existing session
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      loadProfile(session?.user ?? null).finally(() => setLoading(false))
-    })
-
-    // Subscribe to auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      loadProfile(session?.user ?? null)
-    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        // KRUSIAL: defer dengan setTimeout(0) agar auth lock dilepas
+        // sebelum kita memanggil supabase.from() di handleSession.
+        // Tanpa ini, getProfile() akan deadlock menunggu lock yang sama.
+        setTimeout(() => handleSession(session), 0)
+      }
+    )
 
     return () => subscription.unsubscribe()
-  }, [loadProfile])
-
-  /**
-   * Sign in with NIK + password.
-   */
-  const signIn = useCallback(async (nik, password) => {
-    const data = await authSignIn(nik, password)
-    // profile will be set by onAuthStateChange listener
-    return data
   }, [])
 
-  /**
-   * Sign out.
-   */
+  const signIn  = useCallback((nik, password) => authSignIn(nik, password), [])
   const signOut = useCallback(async () => {
     await authSignOut()
     setUser(null)
     setProfile(null)
   }, [])
 
-  const value = {
-    user,
-    profile,
-    loading,
-    signIn,
-    signOut,
-    role: profile?.role ?? null,
-    isAuthenticated: !!user && !!profile,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-/**
- * Hook to access auth context. Must be used inside AuthProvider.
- */
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
+  return (
+    <AuthContext.Provider value={{
+      user, profile, loading, signIn, signOut,
+      role: profile?.role ?? null,
+      isAuthenticated: !!user && !!profile,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }

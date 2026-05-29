@@ -88,7 +88,7 @@ BEGIN
   ) VALUES (
     'penukaran_kantor',
     'Kantor - Toko: ' || COALESCE(v_nama_toko,'?') || ' (' || COALESCE(v_kode_toko,'?') || ')',
-    -v_total_koin, -- negatif = koin keluar dari gudang
+    0, -- delta 0 karena koin keluar = uang masuk
     p_updated_by,
     -p_koin_100, -p_koin_200, -p_koin_500, -p_koin_1000,
     -p_koin_2000, -p_koin_5000, -p_koin_10000, -p_koin_20000,

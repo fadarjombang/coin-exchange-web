@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { AuthProvider } from './contexts/AuthContext'
+import { useAuth } from './hooks/useAuth'
 import { Toaster } from './components/ui/toaster'
 import TourGuide from './components/TourGuide'
 import { Loader2 } from 'lucide-react'
