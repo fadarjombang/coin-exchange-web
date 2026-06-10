@@ -184,7 +184,7 @@ export default function Laporan() {
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <BarChart3 size={20} className="text-primary" />
@@ -195,7 +195,7 @@ export default function Laporan() {
             </div>
           </div>
           {activeTab === 'optimasi' && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={loadSkipAnalysis} disabled={loadingSkip}>
                 <RefreshCw size={14} className={loadingSkip ? 'animate-spin' : ''} /> Segarkan
               </Button>

@@ -125,12 +125,12 @@ export default function TransaksiPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Receipt size={20} className="text-primary" /></div>
             <div><h1 className="page-title">Transaksi Lapangan</h1><p className="page-subtitle">Rekap penukaran koin oleh kasir ke setiap toko di lapangan</p></div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0} id="btn-export-csv">
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0} id="btn-export-csv" className="w-full sm:w-auto">
             <Download size={14} /> Export CSV
           </Button>
         </div>

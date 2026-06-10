@@ -378,9 +378,9 @@ export default function BuatSesi() {
                           const t = tokoAll.find((x) => x.id === id)
                           return (
                             <div key={id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-2.5 border rounded-lg bg-muted/20">
-                              <div className="flex items-center gap-2 flex-1">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold flex-shrink-0">{i + 1}</span>
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <p className="text-sm font-medium truncate">{t?.nama_toko}</p>
                                   <p className="text-[10px] text-muted-foreground">{t?.kode_toko}</p>
                                 </div>
@@ -514,9 +514,9 @@ export default function BuatSesi() {
                     {selectedToko.map((id, i) => {
                       const t = tokoAll.find((x) => x.id === id)
                       return (
-                        <div key={id} className="flex justify-between py-0.5">
-                          <span>{i + 1}. {t?.nama_toko} <span className="text-muted-foreground text-xs">({t?.kode_toko})</span></span>
-                          <span className="font-semibold">{formatRupiah(parseInt(tokoAlokasi[id]) || 0)}</span>
+                        <div key={id} className="flex justify-between items-center py-0.5 gap-4">
+                          <span className="min-w-0 flex-1 truncate">{i + 1}. {t?.nama_toko} <span className="text-muted-foreground text-xs">({t?.kode_toko})</span></span>
+                          <span className="font-semibold flex-shrink-0">{formatRupiah(parseInt(tokoAlokasi[id]) || 0)}</span>
                         </div>
                       )
                     })}

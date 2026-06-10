@@ -84,13 +84,13 @@ export default function SesiList() {
   return (
     <DashboardLayout pendingCount={counts.pending_approval + counts.pending_close}>
       <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><ClipboardList size={20} className="text-primary" /></div>
             <div><h1 className="page-title">Sesi Tugas</h1><p className="page-subtitle">Kelola penugasan dan pantau aktivitas kasir di lapangan</p></div>
           </div>
           {roles.includes('admin') && (
-            <Button onClick={() => navigate('/dashboard/sesi/buat')} id="buat-sesi-btn">
+            <Button onClick={() => navigate('/dashboard/sesi/buat')} id="buat-sesi-btn" className="w-full sm:w-auto">
               <Plus size={16} /> Buat Sesi
             </Button>
           )}

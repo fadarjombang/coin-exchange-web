@@ -100,7 +100,7 @@ export default function TokoList() {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Store size={20} className="text-primary" />
@@ -110,16 +110,16 @@ export default function TokoList() {
               <p className="page-subtitle">{toko.length} toko terdaftar</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="flex-1 sm:flex-none">
               <Download size={14} /> Template
             </Button>
-            <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={importing}>
+            <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={importing} className="flex-1 sm:flex-none">
               {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
               {importing ? 'Mengimpor...' : 'Import Excel'}
             </Button>
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportExcel} />
-            <Button onClick={() => navigate('/dashboard/toko/tambah')} id="add-toko-btn">
+            <Button onClick={() => navigate('/dashboard/toko/tambah')} id="add-toko-btn" className="w-full sm:w-auto">
               <Plus size={16} /> Tambah Toko
             </Button>
           </div>

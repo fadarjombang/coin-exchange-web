@@ -53,12 +53,12 @@ export default function MobilList() {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Car size={20} className="text-primary" /></div>
             <div><h1 className="page-title">Master Mobil</h1><p className="page-subtitle">{mobil.length} kendaraan terdaftar</p></div>
           </div>
-          <Button onClick={openAdd} id="add-mobil-btn"><Plus size={16} /> Tambah Mobil</Button>
+          <Button onClick={openAdd} id="add-mobil-btn" className="w-full sm:w-auto"><Plus size={16} /> Tambah Mobil</Button>
         </div>
         <Card>
           <CardContent className="p-0">

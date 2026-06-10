@@ -106,15 +106,15 @@ export default function AppTokoList() {
             return (
               <Card key={a.id} className={a.status === 'on_progress' ? 'border-blue-400 ring-1 ring-blue-400' : ''}>
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">{a.urutan}</span>
-                      <div>
-                        <p className="font-semibold text-sm">{a.toko?.nama_toko}</p>
-                        <p className="text-xs text-muted-foreground">{a.toko?.kode_toko}</p>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold flex-shrink-0 flex items-center justify-center">{a.urutan}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm truncate">{a.toko?.nama_toko}</p>
+                        <p className="text-xs text-muted-foreground truncate">{a.toko?.kode_toko}</p>
                       </div>
                     </div>
-                    <Badge variant={BADGE_VARIANT[a.status] || 'secondary'}>
+                    <Badge variant={BADGE_VARIANT[a.status] || 'secondary'} className="flex-shrink-0">
                       {ASSIGNMENT_STATUS[a.status]?.label}
                     </Badge>
                   </div>

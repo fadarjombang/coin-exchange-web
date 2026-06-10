@@ -230,9 +230,10 @@ export default function TransaksiForm() {
             <div className="grid grid-cols-2 gap-2">
               {DENOM_LIST.map((d) => (
                 <div key={d.key} className="space-y-1">
-                  <Label className="text-xs">
-                    {d.label} <span className="text-muted-foreground">(maks {formatRupiah(sisaDenom[d.key])})</span>
-                  </Label>
+                  <div className="flex justify-between items-center gap-1">
+                    <Label className="text-xs">{d.label}</Label>
+                    <span className="text-[10px] text-muted-foreground truncate">Maks {formatRupiah(sisaDenom[d.key])}</span>
+                  </div>
                   <div className="relative">
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
                     <Input

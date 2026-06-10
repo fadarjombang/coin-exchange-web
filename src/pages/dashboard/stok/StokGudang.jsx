@@ -165,7 +165,7 @@ export default function StokGudang() {
       <div className="space-y-6 animate-fade-in">
 
         {/* Page header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Package size={20} className="text-primary" />
@@ -175,10 +175,10 @@ export default function StokGudang() {
               <p className="page-subtitle">Saldo persediaan koin dan uang kertas di gudang</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={fetchStok}><RefreshCw size={14} /></Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={fetchStok} className="flex-1 sm:flex-none"><RefreshCw size={14} /></Button>
             {!editMode && isAdmin && (
-              <Button size="sm" onClick={() => setEditMode(true)} id="btn-penyesuaian">
+              <Button size="sm" onClick={() => setEditMode(true)} id="btn-penyesuaian" className="flex-[4] sm:flex-none">
                 Penyesuaian Manual
               </Button>
             )}
