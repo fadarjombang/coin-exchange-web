@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +14,10 @@ import { Package, ClipboardList, ArrowUpRight, LayoutDashboard, Bell, TrendingUp
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { role } = useAuth()
+  const roles = Array.isArray(role) ? role : [role]
+  const isManager = roles.includes('manager') || roles.includes('superadmin')
+
   const [stats, setStats]     = useState({ stokTotal: 0, sesiAktif: 0, trxHariIni: 0, trxTotal: 0, pending: 0 })
   const [sesiAktif, setSesiAktif] = useState([])
   const [pending, setPending]     = useState([])
@@ -102,11 +107,11 @@ export default function Dashboard() {
     { label: 'Saldo Gudang',       value: formatRupiah(stats.stokTotal), icon: Package,       color: 'bg-blue-50 text-blue-600', sub: 'Total nilai aset koin' },
     { label: 'Sesi Aktif',         value: stats.sesiAktif,              icon: ClipboardList,  color: 'bg-teal-50 text-teal-600', sub: 'Sedang beroperasi di lapangan' },
     { label: 'Transaksi Hari Ini', value: stats.trxHariIni,             icon: TrendingUp,     color: 'bg-emerald-50 text-emerald-600', sub: formatRupiah(stats.trxTotal) },
-    { label: 'Menunggu Persetujuan', value: stats.pending,              icon: Bell,           color: 'bg-amber-50 text-amber-600', sub: 'Perlu ditinjau segera', alert: stats.pending > 0 },
+    ...(isManager ? [{ label: 'Menunggu Persetujuan', value: stats.pending,              icon: Bell,           color: 'bg-amber-50 text-amber-600', sub: 'Perlu ditinjau segera', alert: stats.pending > 0 }] : []),
   ]
 
   return (
-    <DashboardLayout pendingCount={stats.pending}>
+    <DashboardLayout pendingCount={isManager ? stats.pending : 0}>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -120,7 +125,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${isManager ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
           {statCards.map(({ label, value, icon: Icon, color, sub, alert }) => (
             <Card key={label} className={alert ? 'ring-2 ring-amber-400' : ''}>
               <CardContent className="p-5">
@@ -160,7 +165,7 @@ export default function Dashboard() {
           {/* Column Left (Active operations) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Pending approvals */}
-            {pending.length > 0 && (
+            {isManager && pending.length > 0 && (
               <Card className="border-amber-200 bg-amber-50/50">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2 text-amber-800">
