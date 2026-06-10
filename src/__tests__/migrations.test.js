@@ -10,7 +10,7 @@ function readMigration(filename) {
 
 // ── Task 11: RPC auth.uid() guards ───────────────────────────
 describe('Task 11 — RPC security guards in migration', () => {
-  const sql = readMigration('20260524_security_rpc_and_rls.sql')
+  const sql = readMigration('20260524000007_security_rpc_and_rls.sql')
 
   it('submit_field_transaction checks kasir_id = auth.uid()', () => {
     expect(sql).toContain('p_kasir_id IS DISTINCT FROM auth.uid()')
@@ -40,7 +40,7 @@ describe('Task 11 — RPC security guards in migration', () => {
 
 // ── Task 12: Ownership validation ────────────────────────────
 describe('Task 12 — submit_field_transaction ownership check', () => {
-  const sql = readMigration('20260524_security_rpc_and_rls.sql')
+  const sql = readMigration('20260524000007_security_rpc_and_rls.sql')
 
   it('validates assignment belongs to caller sesi', () => {
     expect(sql).toContain('s.kasir_id       = auth.uid()')
@@ -61,7 +61,7 @@ describe('Task 12 — submit_field_transaction ownership check', () => {
 
 // ── Task 13: get_my_role is_active filter ────────────────────
 describe('Task 13 — get_my_role filters is_active', () => {
-  const sql = readMigration('20260524_security_rpc_and_rls.sql')
+  const sql = readMigration('20260524000007_security_rpc_and_rls.sql')
 
   it('get_my_role includes is_active = true filter', () => {
     expect(sql).toContain('WHERE id = auth.uid() AND is_active = true')
@@ -70,7 +70,7 @@ describe('Task 13 — get_my_role filters is_active', () => {
 
 // ── Task 14: Balance check in RPC ────────────────────────────
 describe('Task 14 — update_stok_gudang_kantor balance check', () => {
-  const sql = readMigration('20260524_security_rpc_and_rls.sql')
+  const sql = readMigration('20260524000007_security_rpc_and_rls.sql')
 
   it('raises exception when koin != uang for kantor transaction', () => {
     expect(sql).toContain('Selisih harus 0 untuk transaksi kantor')
@@ -83,7 +83,7 @@ describe('Task 14 — update_stok_gudang_kantor balance check', () => {
 
 // ── Task 16: Schema drift columns ────────────────────────────
 describe('Task 16 — Missing columns migration', () => {
-  const sql = readMigration('20260524_schema_drift_and_singleton.sql')
+  const sql = readMigration('20260524000006_schema_drift_and_singleton.sql')
 
   it('adds foto_profil to users', () => {
     expect(sql).toContain('ALTER TABLE users ADD COLUMN IF NOT EXISTS foto_profil')
@@ -104,7 +104,7 @@ describe('Task 16 — Missing columns migration', () => {
 
 // ── Task 18: Atomic sesi creation ────────────────────────────
 describe('Task 18 — create_sesi_tugas and update_sesi_tugas RPCs', () => {
-  const sql = readMigration('20260524_atomic_sesi_and_rekonsiliasi.sql')
+  const sql = readMigration('20260524000001_atomic_sesi_and_rekonsiliasi.sql')
 
   it('create_sesi_tugas function exists', () => {
     expect(sql).toContain('CREATE OR REPLACE FUNCTION create_sesi_tugas')
@@ -131,7 +131,7 @@ describe('Task 18 — create_sesi_tugas and update_sesi_tugas RPCs', () => {
 
 // ── Task 19: Atomic rekonsiliasi ─────────────────────────────
 describe('Task 19 — submit_rekonsiliasi RPC', () => {
-  const sql = readMigration('20260524_atomic_sesi_and_rekonsiliasi.sql')
+  const sql = readMigration('20260524000001_atomic_sesi_and_rekonsiliasi.sql')
 
   it('submit_rekonsiliasi function exists', () => {
     expect(sql).toContain('CREATE OR REPLACE FUNCTION submit_rekonsiliasi')
@@ -156,10 +156,28 @@ describe('Task 19 — submit_rekonsiliasi RPC', () => {
 
 // ── Task 27: Singleton constraint ────────────────────────────
 describe('Task 27 — stok_gudang singleton constraint', () => {
-  const sql = readMigration('20260524_schema_drift_and_singleton.sql')
+  const sql = readMigration('20260524000006_schema_drift_and_singleton.sql')
 
   it('creates unique index to enforce singleton', () => {
     expect(sql).toContain('CREATE UNIQUE INDEX IF NOT EXISTS stok_gudang_singleton')
     expect(sql).toContain('ON stok_gudang ((true))')
   })
 })
+
+// ── Generated Columns Fix ────────────────────────────────────
+describe('Generated Columns Fix migration', () => {
+  const sql = readMigration('20260525100000_fix_stok_gudang_total_nilai.sql')
+
+  it('drops and recreates stok_gudang.total_nilai without multipliers', () => {
+    expect(sql).toContain('ALTER TABLE public.stok_gudang DROP COLUMN IF EXISTS total_nilai')
+    expect(sql).toContain('uang_50000 + uang_100000')
+    expect(sql).not.toContain('koin_100*100')
+  })
+
+  it('drops and recreates modal_koin.total_nilai without multipliers', () => {
+    expect(sql).toContain('ALTER TABLE public.modal_koin DROP COLUMN IF EXISTS total_nilai')
+    expect(sql).toContain('koin_10000 + koin_20000')
+    expect(sql).not.toContain('koin_100*100')
+  })
+})
+

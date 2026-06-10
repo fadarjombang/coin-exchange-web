@@ -4,6 +4,8 @@ build/
 .env
 .env.local
 .env.production
+.env.test
+.env.backup
 .env.*.local
 *.log
 .DS_Store
