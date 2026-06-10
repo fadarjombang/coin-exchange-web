@@ -62,22 +62,24 @@ export default function MobilList() {
         </div>
         <Card>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader><TableRow><TableHead>Nopol</TableHead><TableHead>Jenis Kendaraan</TableHead><TableHead>Warna</TableHead><TableHead>Status</TableHead><TableHead>Ditambahkan</TableHead><TableHead /></TableRow></TableHeader>
-              <TableBody>
-                {loading ? Array.from({length:3}).map((_,i)=><TableRow key={i}><TableCell colSpan={6}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell></TableRow>)
-                : mobil.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-mono font-medium">{m.nopol}</TableCell>
-                    <TableCell>{m.jenis_kendaraan || '-'}</TableCell>
-                    <TableCell>{m.warna_mobil || '-'}</TableCell>
-                    <TableCell><Badge variant={m.is_active ? 'success' : 'destructive'}>{m.is_active ? 'Aktif' : 'Nonaktif'}</Badge></TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{formatDateTime(m.created_at)}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => openEdit(m)}>Edit</Button></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto w-full">
+              <Table>
+                <TableHeader><TableRow><TableHead>Nopol</TableHead><TableHead>Jenis Kendaraan</TableHead><TableHead>Warna</TableHead><TableHead>Status</TableHead><TableHead>Ditambahkan</TableHead><TableHead /></TableRow></TableHeader>
+                <TableBody>
+                  {loading ? Array.from({length:3}).map((_,i)=><TableRow key={i}><TableCell colSpan={6}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell></TableRow>)
+                  : mobil.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell className="font-mono font-medium">{m.nopol}</TableCell>
+                      <TableCell>{m.jenis_kendaraan || '-'}</TableCell>
+                      <TableCell>{m.warna_mobil || '-'}</TableCell>
+                      <TableCell><Badge variant={m.is_active ? 'success' : 'destructive'}>{m.is_active ? 'Aktif' : 'Nonaktif'}</Badge></TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{formatDateTime(m.created_at)}</TableCell>
+                      <TableCell><Button variant="ghost" size="sm" onClick={() => openEdit(m)}>Edit</Button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

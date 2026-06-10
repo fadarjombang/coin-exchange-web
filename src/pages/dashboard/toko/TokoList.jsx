@@ -134,38 +134,40 @@ export default function TokoList() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Kode Toko</TableHead>
-                  <TableHead>Nama Toko</TableHead>
-                  <TableHead>Area</TableHead>
-                  <TableHead>Alamat</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>{Array.from({ length: 6 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
-                )) : paginatedToko.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Tidak ada toko ditemukan</TableCell></TableRow>
-                ) : paginatedToko.map((t) => (
-                  <TableRow key={t.id} className="cursor-pointer" onClick={() => navigate(`/dashboard/toko/edit/${t.id}`)}>
-                    <TableCell className="font-mono font-medium">{t.kode_toko}</TableCell>
-                    <TableCell>{t.nama_toko}</TableCell>
-                    <TableCell>{t.area || '-'}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm max-w-xs truncate">{t.alamat || '-'}</TableCell>
-                    <TableCell><Badge variant={t.is_active ? 'success' : 'destructive'}>{t.is_active ? 'Aktif' : 'Nonaktif'}</Badge></TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/toko/${t.id}/riwayat`) }}>
-                        <History size={14} /> Riwayat
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Kode Toko</TableHead>
+                    <TableHead>Nama Toko</TableHead>
+                    <TableHead>Area</TableHead>
+                    <TableHead>Alamat</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {loading ? Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>{Array.from({ length: 6 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
+                  )) : paginatedToko.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Tidak ada toko ditemukan</TableCell></TableRow>
+                  ) : paginatedToko.map((t) => (
+                    <TableRow key={t.id} className="cursor-pointer" onClick={() => navigate(`/dashboard/toko/edit/${t.id}`)}>
+                      <TableCell className="font-mono font-medium">{t.kode_toko}</TableCell>
+                      <TableCell>{t.nama_toko}</TableCell>
+                      <TableCell>{t.area || '-'}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-xs truncate">{t.alamat || '-'}</TableCell>
+                      <TableCell><Badge variant={t.is_active ? 'success' : 'destructive'}>{t.is_active ? 'Aktif' : 'Nonaktif'}</Badge></TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/toko/${t.id}/riwayat`) }}>
+                          <History size={14} /> Riwayat
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
             {/* Pagination Controls */}
             {!loading && totalPages > 1 && (

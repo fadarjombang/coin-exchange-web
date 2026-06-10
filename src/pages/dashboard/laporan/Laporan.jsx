@@ -300,75 +300,77 @@ export default function Laporan() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Toko</TableHead>
-                          <TableHead className="text-center">Total Ditugaskan</TableHead>
-                          <TableHead className="text-center">Total Dilewati</TableHead>
-                          <TableHead>Rasio Skip</TableHead>
-                          <TableHead>Rekomendasi Tindakan</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {loadingSkip ? (
-                          Array.from({ length: 5 }).map((_, i) => (
-                            <TableRow key={i}>
-                              <TableCell colSpan={5} className="py-8 text-center"><Loader2 className="animate-spin mx-auto text-primary" /></TableCell>
-                            </TableRow>
-                          ))
-                        ) : filteredSkipData.length === 0 ? (
+                    <div className="overflow-x-auto w-full">
+                      <Table>
+                        <TableHeader>
                           <TableRow>
-                            <TableCell colSpan={5} className="py-12 text-center text-muted-foreground text-sm">
-                              {searchToko ? `Tidak ditemukan toko yang cocok dengan "${searchToko}"` : 'Belum ada riwayat kunjungan yang dilewati'}
-                            </TableCell>
+                            <TableHead>Toko</TableHead>
+                            <TableHead className="text-center">Total Ditugaskan</TableHead>
+                            <TableHead className="text-center">Total Dilewati</TableHead>
+                            <TableHead>Rasio Skip</TableHead>
+                            <TableHead>Rekomendasi Tindakan</TableHead>
                           </TableRow>
-                        ) : (
-                          (() => {
-                            const startIdx = (currentPage - 1) * ITEMS_PER_PAGE
-                            const paginatedData = filteredSkipData.slice(startIdx, startIdx + ITEMS_PER_PAGE)
-                            return paginatedData.map((item) => {
-                              const isCritical = item.skip_ratio >= 50 && item.total_visits >= 2
-                              return (
-                                <TableRow key={item.id}>
-                                  <TableCell>
-                                    <p className="font-mono text-xs text-muted-foreground">{item.kode_toko}</p>
-                                    <p className="font-semibold text-sm">{item.nama_toko}</p>
-                                    <p className="text-[10px] text-muted-foreground">Area: {item.area || 'Tanpa Area'}</p>
-                                  </TableCell>
-                                  <TableCell className="text-center text-sm font-medium">{item.total_visits} kali</TableCell>
-                                  <TableCell className="text-center text-sm font-semibold text-amber-700">{item.total_skipped} kali</TableCell>
-                                  <TableCell>
-                                    <div className="space-y-1.5 w-24">
-                                      <div className="flex justify-between text-xs font-semibold">
-                                        <span className={item.skip_ratio >= 50 ? 'text-rose-600' : 'text-slate-600'}>{item.skip_ratio}%</span>
+                        </TableHeader>
+                        <TableBody>
+                          {loadingSkip ? (
+                            Array.from({ length: 5 }).map((_, i) => (
+                              <TableRow key={i}>
+                                <TableCell colSpan={5} className="py-8 text-center"><Loader2 className="animate-spin mx-auto text-primary" /></TableCell>
+                              </TableRow>
+                            ))
+                          ) : filteredSkipData.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={5} className="py-12 text-center text-muted-foreground text-sm">
+                                {searchToko ? `Tidak ditemukan toko yang cocok dengan "${searchToko}"` : 'Belum ada riwayat kunjungan yang dilewati'}
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            (() => {
+                              const startIdx = (currentPage - 1) * ITEMS_PER_PAGE
+                              const paginatedData = filteredSkipData.slice(startIdx, startIdx + ITEMS_PER_PAGE)
+                              return paginatedData.map((item) => {
+                                const isCritical = item.skip_ratio >= 50 && item.total_visits >= 2
+                                return (
+                                  <TableRow key={item.id}>
+                                    <TableCell>
+                                      <p className="font-mono text-xs text-muted-foreground">{item.kode_toko}</p>
+                                      <p className="font-semibold text-sm">{item.nama_toko}</p>
+                                      <p className="text-[10px] text-muted-foreground">Area: {item.area || 'Tanpa Area'}</p>
+                                    </TableCell>
+                                    <TableCell className="text-center text-sm font-medium">{item.total_visits} kali</TableCell>
+                                    <TableCell className="text-center text-sm font-semibold text-amber-700">{item.total_skipped} kali</TableCell>
+                                    <TableCell>
+                                      <div className="space-y-1.5 w-24">
+                                        <div className="flex justify-between text-xs font-semibold">
+                                          <span className={item.skip_ratio >= 50 ? 'text-rose-600' : 'text-slate-600'}>{item.skip_ratio}%</span>
+                                        </div>
+                                        <Progress value={item.skip_ratio} className={`h-1.5 ${item.skip_ratio >= 50 ? 'bg-rose-100 [&>div]:bg-rose-600' : ''}`} />
                                       </div>
-                                      <Progress value={item.skip_ratio} className={`h-1.5 ${item.skip_ratio >= 50 ? 'bg-rose-100 [&>div]:bg-rose-600' : ''}`} />
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    {isCritical ? (
-                                      <Badge variant="destructive" className="animate-pulse flex items-center gap-1 w-fit">
-                                        <ArrowDownRight size={10} /> Turunkan Prioritas
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="success" className="flex items-center gap-1 w-fit">
-                                        <CheckCircle2 size={10} /> Tetap Prioritas
-                                      </Badge>
-                                    )}
-                                    {item.top_reason && item.top_reason !== '-' && (
-                                      <p className="text-[10px] text-muted-foreground mt-1 truncate max-w-[150px]" title={item.top_reason}>
-                                        Alasan: {item.top_reason}
-                                      </p>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              )
-                            })
-                          })()
-                        )}
-                      </TableBody>
-                    </Table>
+                                    </TableCell>
+                                    <TableCell>
+                                      {isCritical ? (
+                                        <Badge variant="destructive" className="animate-pulse flex items-center gap-1 w-fit">
+                                          <ArrowDownRight size={10} /> Turunkan Prioritas
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="success" className="flex items-center gap-1 w-fit">
+                                          <CheckCircle2 size={10} /> Tetap Prioritas
+                                        </Badge>
+                                      )}
+                                      {item.top_reason && item.top_reason !== '-' && (
+                                        <p className="text-[10px] text-muted-foreground mt-1 truncate max-w-[150px]" title={item.top_reason}>
+                                          Alasan: {item.top_reason}
+                                        </p>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })
+                            })()
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
                     {filteredSkipData.length > ITEMS_PER_PAGE && (
                       <div className="flex items-center justify-between px-4 py-3 border-t">
                         <p className="text-sm text-muted-foreground">
@@ -448,20 +450,22 @@ export default function Laporan() {
               </div>
             )}
             <Card><CardContent className="p-0">
-              <Table><TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Kasir</TableHead><TableHead>Toko Dikunjungi</TableHead><TableHead>Total Koin</TableHead><TableHead>Total Uang</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {loading ? <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-                    : data.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Tentukan rentang tanggal dan klik Tampilkan untuk melihat data</TableCell></TableRow>
-                      : data.map((s) => (
-                        <TableRow key={s.id}>
-                          <TableCell>{formatDate(s.tanggal)}</TableCell>
-                          <TableCell>{s.kasir?.name}</TableCell>
-                          <TableCell>{s.transaksi?.length || 0} toko</TableCell>
-                          <TableCell>{formatRupiah(s.transaksi?.reduce((a, t) => a + (t.total_koin_nilai || 0), 0))}</TableCell>
-                          <TableCell>{formatRupiah(s.transaksi?.reduce((a, t) => a + (t.total_uang_diterima || 0), 0))}</TableCell>
-                        </TableRow>
-                      ))}
-                </TableBody></Table>
+              <div className="overflow-x-auto w-full">
+                <Table><TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Kasir</TableHead><TableHead>Toko Dikunjungi</TableHead><TableHead>Total Koin</TableHead><TableHead>Total Uang</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {loading ? <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                      : data.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Tentukan rentang tanggal dan klik Tampilkan untuk melihat data</TableCell></TableRow>
+                        : data.map((s) => (
+                          <TableRow key={s.id}>
+                            <TableCell>{formatDate(s.tanggal)}</TableCell>
+                            <TableCell>{s.kasir?.name}</TableCell>
+                            <TableCell>{s.transaksi?.length || 0} toko</TableCell>
+                            <TableCell>{formatRupiah(s.transaksi?.reduce((a, t) => a + (t.total_koin_nilai || 0), 0))}</TableCell>
+                            <TableCell>{formatRupiah(s.transaksi?.reduce((a, t) => a + (t.total_uang_diterima || 0), 0))}</TableCell>
+                          </TableRow>
+                        ))}
+                  </TableBody></Table>
+              </div>
             </CardContent></Card>
           </TabsContent>
         </Tabs>

@@ -232,7 +232,7 @@ export default function StokGudang() {
                 <div key={d.key} className="rounded-lg border p-3 bg-muted/30">
                   <p className="text-xs text-muted-foreground">{d.label}</p>
                   {loading ? <Skeleton className="h-6 w-20 mt-1" /> : (
-                    <p className="text-lg font-bold text-primary">{formatRupiah(stok?.[d.key] || 0)}</p>
+                    <p className="text-base sm:text-lg font-bold text-primary">{formatRupiah(stok?.[d.key] || 0)}</p>
                   )}
                 </div>
               ))}
@@ -246,12 +246,12 @@ export default function StokGudang() {
             <CardTitle className="text-base flex items-center gap-2"><Banknote size={16} />Uang Besar</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {UANG_LIST.map((d) => (
                 <div key={d.key} className="rounded-lg border p-3 bg-muted/30">
                   <p className="text-xs text-muted-foreground">{d.label}</p>
                   {loading ? <Skeleton className="h-6 w-20 mt-1" /> : (
-                    <p className="text-lg font-bold text-emerald-700">{formatRupiah(stok?.[d.key] || 0)}</p>
+                    <p className="text-base sm:text-lg font-bold text-emerald-700">{formatRupiah(stok?.[d.key] || 0)}</p>
                   )}
                 </div>
               ))}
@@ -333,29 +333,29 @@ export default function StokGudang() {
               <CardTitle className="text-base">History Log Perubahan</CardTitle>
 
               {/* Filter controls */}
-              <div className="flex flex-wrap items-end gap-2">
-                <div className="space-y-1">
+              <div className="grid grid-cols-2 sm:flex sm:items-end gap-2 w-full sm:w-auto">
+                <div className="space-y-1 col-span-1">
                   <Label className="text-xs text-muted-foreground">Dari</Label>
                   <Input
                     type="date" value={logFrom}
                     onChange={e => setLogFrom(e.target.value)}
-                    className="h-8 w-36 text-xs"
+                    className="h-8 w-full sm:w-36 text-xs bg-background"
                   />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 col-span-1">
                   <Label className="text-xs text-muted-foreground">Sampai</Label>
                   <Input
                     type="date" value={logTo}
                     onChange={e => setLogTo(e.target.value)}
-                    className="h-8 w-36 text-xs"
+                    className="h-8 w-full sm:w-36 text-xs bg-background"
                   />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 col-span-1 flex flex-col">
                   <Label className="text-xs text-muted-foreground">Tipe</Label>
                   <select
                     value={logTipe}
                     onChange={e => setLogTipe(e.target.value)}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="h-8 w-full sm:w-auto rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                   >
                     <option value="all">Semua</option>
                     <option value="keluar_modal">Keluar Modal</option>
@@ -364,7 +364,7 @@ export default function StokGudang() {
                     <option value="penukaran_kantor">Kantor</option>
                   </select>
                 </div>
-                <Button size="sm" className="h-8 px-3 gap-1" onClick={handleSearch} disabled={logLoading}>
+                <Button size="sm" className="h-8 px-3 gap-1 col-span-1" onClick={handleSearch} disabled={logLoading}>
                   {logLoading
                     ? <Loader2 size={13} className="animate-spin" />
                     : <Search size={13} />
@@ -376,7 +376,8 @@ export default function StokGudang() {
           </CardHeader>
 
           <CardContent className="p-0">
-            <Table>
+            <div className="overflow-x-auto w-full">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Waktu</TableHead>
@@ -421,6 +422,7 @@ export default function StokGudang() {
                 }
               </TableBody>
             </Table>
+            </div>
 
             {/* Pagination bar */}
             {!logLoading && logTotal > LOG_PAGE_SIZE && (

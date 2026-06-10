@@ -295,37 +295,41 @@ export default function SesiDetail() {
 
           <TabsContent value="toko">
             <Card><CardContent className="p-0">
-              <Table><TableHeader><TableRow><TableHead>No</TableHead><TableHead>Kode</TableHead><TableHead>Nama</TableHead><TableHead className="text-right">Alokasi Koin</TableHead><TableHead>Status</TableHead><TableHead>Alasan Skip</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {sesi?.toko_assignment?.sort((a,b)=>a.urutan-b.urutan).map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell>{a.urutan}</TableCell>
-                    <TableCell className="font-mono">{a.toko?.kode_toko}</TableCell>
-                    <TableCell>{a.toko?.nama_toko}</TableCell>
-                    <TableCell className="text-right font-medium">{formatRupiah(a.alokasi_koin || 0)}</TableCell>
-                    <TableCell><Badge variant={ASSIGNMENT_STATUS[a.status]?.variant||'secondary'}>{ASSIGNMENT_STATUS[a.status]?.icon} {ASSIGNMENT_STATUS[a.status]?.label}</Badge></TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{a.alasan_skip || '-'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody></Table>
+              <div className="overflow-x-auto w-full">
+                <Table><TableHeader><TableRow><TableHead>No</TableHead><TableHead>Kode</TableHead><TableHead>Nama</TableHead><TableHead className="text-right">Alokasi Koin</TableHead><TableHead>Status</TableHead><TableHead>Alasan Skip</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {sesi?.toko_assignment?.sort((a,b)=>a.urutan-b.urutan).map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell>{a.urutan}</TableCell>
+                      <TableCell className="font-mono">{a.toko?.kode_toko}</TableCell>
+                      <TableCell>{a.toko?.nama_toko}</TableCell>
+                      <TableCell className="text-right font-medium">{formatRupiah(a.alokasi_koin || 0)}</TableCell>
+                      <TableCell><Badge variant={ASSIGNMENT_STATUS[a.status]?.variant||'secondary'}>{ASSIGNMENT_STATUS[a.status]?.icon} {ASSIGNMENT_STATUS[a.status]?.label}</Badge></TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{a.alasan_skip || '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody></Table>
+              </div>
             </CardContent></Card>
           </TabsContent>
 
           <TabsContent value="transaksi">
             <Card><CardContent className="p-0">
-              <Table><TableHeader><TableRow><TableHead>Toko</TableHead><TableHead>Waktu</TableHead><TableHead>Total Koin</TableHead><TableHead>Total Uang</TableHead><TableHead>Selisih</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {sesi?.transaksi?.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Belum ada transaksi</TableCell></TableRow>
-                : sesi?.transaksi?.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell><p className="font-mono text-xs">{t.toko?.kode_toko}</p><p className="text-sm">{t.toko?.nama_toko}</p></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{formatDateTime(t.tanggal_waktu)}</TableCell>
-                    <TableCell>{formatRupiah(t.total_koin_nilai)}</TableCell>
-                    <TableCell>{formatRupiah(t.total_uang_diterima)}</TableCell>
-                    <TableCell><Badge variant={t.selisih === 0 ? 'success' : 'destructive'}>{t.selisih === 0 ? '✓ 0' : formatRupiah(t.selisih)}</Badge></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody></Table>
+              <div className="overflow-x-auto w-full">
+                <Table><TableHeader><TableRow><TableHead>Toko</TableHead><TableHead>Waktu</TableHead><TableHead>Total Koin</TableHead><TableHead>Total Uang</TableHead><TableHead>Selisih</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {sesi?.transaksi?.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Belum ada transaksi</TableCell></TableRow>
+                  : sesi?.transaksi?.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell><p className="font-mono text-xs">{t.toko?.kode_toko}</p><p className="text-sm">{t.toko?.nama_toko}</p></TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatDateTime(t.tanggal_waktu)}</TableCell>
+                      <TableCell>{formatRupiah(t.total_koin_nilai)}</TableCell>
+                      <TableCell>{formatRupiah(t.total_uang_diterima)}</TableCell>
+                      <TableCell><Badge variant={t.selisih === 0 ? 'success' : 'destructive'}>{t.selisih === 0 ? '✓ 0' : formatRupiah(t.selisih)}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody></Table>
+              </div>
             </CardContent></Card>
           </TabsContent>
 
