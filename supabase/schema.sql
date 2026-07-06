@@ -214,6 +214,7 @@ CREATE INDEX IF NOT EXISTS idx_sesi_tugas_kasir   ON sesi_tugas(kasir_id);
 CREATE INDEX IF NOT EXISTS idx_sesi_tugas_tanggal ON sesi_tugas(tanggal);
 CREATE INDEX IF NOT EXISTS idx_transaksi_sesi     ON transaksi(sesi_tugas_id);
 CREATE INDEX IF NOT EXISTS idx_transaksi_toko     ON transaksi(toko_id);
+CREATE INDEX IF NOT EXISTS idx_transaksi_jenis_created_at ON transaksi(jenis, created_at);
 CREATE INDEX IF NOT EXISTS idx_toko_assignment_sesi ON toko_assignment(sesi_tugas_id);
 
 -- ============================================================

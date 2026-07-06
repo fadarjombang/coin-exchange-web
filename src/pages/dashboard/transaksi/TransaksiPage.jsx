@@ -12,9 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 import { Receipt, Search, Download, Filter } from 'lucide-react'
 import { formatRupiah, formatNumber, formatDateTime, formatDate, todayISO, DENOM_LIST, UANG_LIST, csvCell } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 
 export default function TransaksiPage() {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [rows, setRows] = useState([])
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
@@ -36,15 +38,21 @@ export default function TransaksiPage() {
   // Fetch hanya menggunakan activeFrom/activeTo (bukan dateFrom/dateTo)
   const fetch = useCallback(async (from, to) => {
     setLoading(true)
-    const { data } = await supabase.from('transaksi')
+    const { data, error } = await supabase.from('transaksi')
       .select('*, toko:toko_id(kode_toko, nama_toko, area), kasir:kasir_id(name), sesi:sesi_tugas_id(tanggal)')
       .eq('jenis', 'field')
       .gte('created_at', new Date(`${from}T00:00:00+07:00`).toISOString())
       .lte('created_at', new Date(`${to}T23:59:59+07:00`).toISOString())
       .order('created_at', { ascending: false })
+    if (error) {
+      toast({ title: 'Gagal memuat data', description: error.message, variant: 'destructive' })
+      setRows([])
+      setLoading(false)
+      return
+    }
     setRows(data || [])
     setLoading(false)
-  }, [])
+  }, [toast])
 
   // Fetch data hari ini saat pertama kali mount
   useEffect(() => {
