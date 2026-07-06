@@ -39,7 +39,12 @@ export default function TransaksiPage() {
   const fetch = useCallback(async (from, to) => {
     setLoading(true)
     const { data, error } = await supabase.from('transaksi')
-      .select('*, toko:toko_id(kode_toko, nama_toko, area), kasir:kasir_id(name), sesi:sesi_tugas_id(tanggal)')
+      .select(`
+        id, created_at, total_koin_nilai, total_uang_diterima, selisih, pic_nama,
+        koin_100, koin_200, koin_500, koin_1000, koin_2000, koin_5000, koin_10000, koin_20000,
+        uang_50000, uang_100000,
+        toko:toko_id(kode_toko, nama_toko, area), kasir:kasir_id(name), sesi:sesi_tugas_id(tanggal)
+      `)
       .eq('jenis', 'field')
       .gte('created_at', new Date(`${from}T00:00:00+07:00`).toISOString())
       .lte('created_at', new Date(`${to}T23:59:59+07:00`).toISOString())
