@@ -9,6 +9,18 @@ const LAUNCH_YEAR = 2026
 const LAUNCH_MONTH = 5  // Mei (1-indexed)
 const LAUNCH_OFFSET = 40
 
+// A4 @ 96 DPI. Halaman surat tugas sekarang boleh tumbuh > 1 halaman
+// (di-slice per PAGE_H_PX saat render) untuk sesi dengan banyak toko.
+const PAGE_W_PX = 794
+const PAGE_H_PX = 1123
+const PAGE_H_MM = 297
+const RENDER_SCALE = 2
+
+// Margin cetak aman di tiap halaman lanjutan (jaga-jaga toleransi printer/kertas).
+// Halaman pertama TIDAK pakai margin atas — kop surat sudah punya padding sendiri.
+const SAFE_MARGIN_MM = 8
+const SAFE_MARGIN_PX = Math.round(PAGE_H_PX * SAFE_MARGIN_MM / PAGE_H_MM)
+
 /**
  * Hitung nomor urut sesi dalam bulannya.
  * Bulan launching (Mei 2026): mulai dari 43.
@@ -55,6 +67,7 @@ export const generateSuratTugasPDF = async (sessions, setPdfLoading, toast) => {
       unit: 'mm',
       format: 'a4'
     })
+    let isFirstPdfPage = true
 
     for (let i = 0; i < sessions.length; i++) {
       const s = sessions[i]
@@ -108,8 +121,8 @@ export const generateSuratTugasPDF = async (sessions, setPdfLoading, toast) => {
       const sigMarginTop = isUltraCompact ? '20px' : (isCompact ? '30px' : '40px')
 
       const pageEl = document.createElement('div')
-      pageEl.style.width = '794px'
-      pageEl.style.height = '1123px' // A4 exact height in pixels
+      pageEl.style.width = PAGE_W_PX + 'px'
+      pageEl.style.minHeight = PAGE_H_PX + 'px' // grows past 1 A4 page for long store lists
       pageEl.style.padding = pagePadding
       pageEl.style.boxSizing = 'border-box'
       pageEl.style.backgroundColor = '#ffffff'
@@ -126,7 +139,7 @@ export const generateSuratTugasPDF = async (sessions, setPdfLoading, toast) => {
         </div>
 
         <div style="text-align: center; margin-bottom: ${headerMargin};">
-          <h2 style="margin: 0; font-size: ${headerTitleSize}; text-decoration: underline; letter-spacing: 0.5px; font-weight: bold; color: #000;">SURAT TUGAS</h2>
+          <h2 style="margin: 0; font-size: ${headerTitleSize}; letter-spacing: 0.5px; font-weight: bold; color: #000; display: inline-block; border-bottom: 1px solid #000; padding-bottom: 2px;">SURAT TUGAS</h2>
           <p style="margin: 2px 0 0 0; font-size: ${headerSubtitleSize}; font-weight: 500; color: #333;">${nomorSurat}</p>
         </div>
 
@@ -154,15 +167,21 @@ export const generateSuratTugasPDF = async (sessions, setPdfLoading, toast) => {
               <td style="border: 1px solid #000; padding: ${petPadding}; font-weight: bold; text-transform: uppercase; background-color: #fff;">${s.driver?.name || '-'}</td>
               <td style="border: 1px solid #000; padding: ${petPadding}; text-align: center; background-color: #fff;">DRIVER</td>
               <td style="border: 1px solid #000; padding: ${petPadding}; text-align: center; font-family: monospace; background-color: #fff;">${s.driver?.nik || '-'}</td>
-              <td rowspan="2" style="border: 1px solid #000; padding: ${petPadding}; text-align: center; font-weight: bold; text-transform: uppercase; vertical-align: middle; background-color: #fff;">${s.mobil?.jenis_kendaraan || '-'}</td>
-              <td rowspan="2" style="border: 1px solid #000; padding: ${petPadding}; text-align: center; font-weight: bold; font-family: monospace; vertical-align: middle; background-color: #fff;">${s.mobil?.nopol || '-'}</td>
-              <td rowspan="2" style="border: 1px solid #000; padding: ${petPadding}; text-align: center; text-transform: uppercase; vertical-align: middle; background-color: #fff;">${s.mobil?.warna_mobil || '-'}</td>
+              <td rowspan="3" style="border: 1px solid #000; padding: ${petPadding}; text-align: center; font-weight: bold; text-transform: uppercase; vertical-align: middle; background-color: #fff;">${s.mobil?.jenis_kendaraan || '-'}</td>
+              <td rowspan="3" style="border: 1px solid #000; padding: ${petPadding}; text-align: center; font-weight: bold; font-family: monospace; vertical-align: middle; background-color: #fff;">${s.mobil?.nopol || '-'}</td>
+              <td rowspan="3" style="border: 1px solid #000; padding: ${petPadding}; text-align: center; text-transform: uppercase; vertical-align: middle; background-color: #fff;">${s.mobil?.warna_mobil || '-'}</td>
             </tr>
             <tr>
               <td style="border: 1px solid #000; padding: ${petPadding}; text-align: center; background-color: #fff;">2</td>
               <td style="border: 1px solid #000; padding: ${petPadding}; font-weight: bold; text-transform: uppercase; background-color: #fff;">${s.kasir?.name || '-'}</td>
               <td style="border: 1px solid #000; padding: ${petPadding}; text-align: center; background-color: #fff;">COLLECTOR</td>
               <td style="border: 1px solid #000; padding: ${petPadding}; text-align: center; font-family: monospace; background-color: #fff;">${s.kasir?.nik || '-'}</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #000; padding: ${petPadding}; text-align: center; background-color: #fff;">3</td>
+              <td style="border: 1px solid #000; padding: ${petPadding}; font-weight: bold; text-transform: uppercase; background-color: #fff;">${s.nama_polisi || '-'}</td>
+              <td style="border: 1px solid #000; padding: ${petPadding}; text-align: center; background-color: #fff;">PENGAWAL</td>
+              <td style="border: 1px solid #000; padding: ${petPadding}; text-align: center; font-family: monospace; background-color: #fff;">-</td>
             </tr>
           </tbody>
         </table>
@@ -184,7 +203,7 @@ export const generateSuratTugasPDF = async (sessions, setPdfLoading, toast) => {
                 <th style="border: 1px solid #000; padding: ${storePaddingY} ${storePaddingX}; text-align: right; width: 90px;">RUPIAH</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="toko-rows">
               ${(s.toko_assignment || []).sort((a, b) => a.urutan - b.urutan).map((a, index) => `
                 <tr>
                   <td style="border: 1px solid #000; padding: ${storePaddingY} ${storePaddingX}; text-align: center; background-color: #fff;">${index + 1}</td>
@@ -210,7 +229,8 @@ export const generateSuratTugasPDF = async (sessions, setPdfLoading, toast) => {
           Demikian surat tugas ini dibuat, mohon dapat dipergunakan sebaik-baiknya. Atas bantuan dan kerjasamanya, kami ucapkan Terimakasih.
         </p>
 
-        <!-- Nametags Section -->
+        <!-- Nametags + Signatures — kept together so it isn't split across a page break -->
+        <div id="letter-tail">
         <div style="margin-top: ${isCompact ? '6px' : '10px'}; margin-bottom: ${isCompact ? '6px' : '10px'};">
           <div style="display: flex; gap: 15px;">
             <!-- Driver Nametag -->
@@ -240,7 +260,7 @@ export const generateSuratTugasPDF = async (sessions, setPdfLoading, toast) => {
               <p style="margin: 0; font-weight: bold; color: #000;">Mengetahui,</p>
             </div>
             <div>
-              <p style="margin: 0; font-weight: bold; text-decoration: underline; color: #000;">BM / DBM Adm / DBM Opr</p>
+              <p style="margin: 0; font-weight: bold; color: #000; display: inline-block; border-bottom: 1px solid #000; padding-bottom: 1px;">BM / DBM Adm / DBM Opr</p>
             </div>
           </div>
 
@@ -251,29 +271,83 @@ export const generateSuratTugasPDF = async (sessions, setPdfLoading, toast) => {
               <p style="margin: 3px 0 0 0; font-weight: bold; color: #000;">Hormat Kami,</p>
             </div>
             <div>
-              <p style="margin: 0; font-weight: bold; text-decoration: underline; color: #000;">Christo Ridel W</p>
+              <p style="margin: 0; font-weight: bold; color: #000; display: inline-block; border-bottom: 1px solid #000; padding-bottom: 1px;">Christo Ridel W</p>
               <p style="margin: 1.5px 0 0 0; color: #555;">Office Manager</p>
             </div>
           </div>
         </div>
+        </div>
       `
       container.appendChild(pageEl)
 
+      // Elemen yang tidak boleh terbelah dua di batas halaman: tiap baris tabel toko + blok nametag/ttd.
+      const pageTop = pageEl.getBoundingClientRect().top
+      const atomicBlocks = [...pageEl.querySelectorAll('#toko-rows tr'), pageEl.querySelector('#letter-tail')]
+        .filter(Boolean)
+        .map((el) => {
+          const r = el.getBoundingClientRect()
+          return { top: r.top - pageTop, bottom: r.bottom - pageTop }
+        })
+
+      // Tinggi konten SEBENARNYA = batas bawah blok terakhir (#letter-tail), bukan
+      // getBoundingClientRect() pageEl langsung — pageEl punya min-height 1 A4 untuk
+      // tampilan, yang akan salah terukur sebagai "konten penuh 1 halaman" walau isinya
+      // pendek (bikin halaman blank nyasar saat budget per halaman dikurangi margin).
+      const naturalHeight = Math.ceil(pageEl.querySelector('#letter-tail').getBoundingClientRect().bottom - pageTop)
+      // Tinggi RENDER pageEl (>= 1 A4 karena min-height) — dipakai hanya untuk viewport html2canvas.
+      const renderedHeight = Math.max(PAGE_H_PX, Math.ceil(pageEl.getBoundingClientRect().height))
+
       // Render page via html2canvas
       const canvas = await html2canvas(pageEl, {
-        scale: 2,
+        scale: RENDER_SCALE,
         useCORS: true,
         logging: false,
-        windowWidth: 794,
-        windowHeight: 1123
+        windowWidth: PAGE_W_PX,
+        windowHeight: renderedHeight
       })
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95)
-
-      if (i > 0) {
-        pdf.addPage()
+      // Titik potong tiap halaman: budget lebih kecil dari PAGE_H_PX supaya selalu
+      // ada margin bawah aman (dan margin atas di halaman ke-2+ — halaman pertama
+      // tidak perlu, kop surat sudah punya padding sendiri). Kalau budget itu masih
+      // akan membelah sebuah baris/blok, mundurkan potongannya ke atas elemen itu.
+      const STRADDLE_GUARD_PX = 6 // toleransi selisih ukur DOM vs render html2canvas
+      const pageWidthPxScaled = PAGE_W_PX * RENDER_SCALE
+      const cutsUnscaled = []
+      let cursor = 0
+      while (cursor < naturalHeight - 0.5) {
+        const isFirstPageOfLetter = cutsUnscaled.length === 0
+        const budget = PAGE_H_PX - (isFirstPageOfLetter ? SAFE_MARGIN_PX : 2 * SAFE_MARGIN_PX)
+        let target = Math.min(cursor + budget, naturalHeight)
+        if (target < naturalHeight) {
+          const straddler = atomicBlocks.find((b) => b.top < target && b.bottom > target - STRADDLE_GUARD_PX)
+          if (straddler && straddler.top > cursor) target = straddler.top
+        }
+        cutsUnscaled.push(target)
+        cursor = target
       }
-      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297) // A4 exact width/height in mm
+
+      let prevPxScaled = 0
+      for (let p = 0; p < cutsUnscaled.length; p++) {
+        const cutPxScaled = Math.round(cutsUnscaled[p] * RENDER_SCALE)
+        const sliceHeightPxScaled = cutPxScaled - prevPxScaled
+        if (sliceHeightPxScaled <= 0) continue
+        const sliceCanvas = document.createElement('canvas')
+        sliceCanvas.width = pageWidthPxScaled
+        sliceCanvas.height = sliceHeightPxScaled
+        const ctx = sliceCanvas.getContext('2d')
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, pageWidthPxScaled, sliceHeightPxScaled)
+        ctx.drawImage(canvas, 0, prevPxScaled, pageWidthPxScaled, sliceHeightPxScaled, 0, 0, pageWidthPxScaled, sliceHeightPxScaled)
+
+        if (!isFirstPdfPage) pdf.addPage()
+        isFirstPdfPage = false
+
+        const sliceHeightMm = (sliceHeightPxScaled / (PAGE_H_PX * RENDER_SCALE)) * PAGE_H_MM
+        const topOffsetMm = p === 0 ? 0 : SAFE_MARGIN_MM
+        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, topOffsetMm, 210, sliceHeightMm)
+
+        prevPxScaled = cutPxScaled
+      }
 
       container.removeChild(pageEl)
     }

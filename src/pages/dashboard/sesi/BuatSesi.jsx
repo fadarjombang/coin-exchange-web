@@ -307,7 +307,7 @@ export default function BuatSesi() {
                     <SelectContent>{driverList.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5"><Label>Polisi / Pengawal *</Label><Input value={tim.nama_polisi} onChange={(e) => setTim((t) => ({ ...t, nama_polisi: e.target.value }))} placeholder="Nama Polisi / Pengawal" /></div>
+                <div className="space-y-1.5"><Label>Pengawal *</Label><Input value={tim.nama_polisi} onChange={(e) => setTim((t) => ({ ...t, nama_polisi: e.target.value }))} placeholder="Nama Pengawal" /></div>
               </>
             )}
 
@@ -503,7 +503,7 @@ export default function BuatSesi() {
                     { label: 'Kendaraan', value: mobilList.find(m => m.id === tim.mobil_id)?.nopol },
                     { label: 'Kasir', value: kasirList.find(k => k.id === tim.kasir_id)?.name },
                     { label: 'Driver', value: driverList.find(d => d.id === tim.driver_id)?.name },
-                    { label: 'Polisi / Pengawal', value: tim.nama_polisi },
+                    { label: 'Pengawal', value: tim.nama_polisi },
                   ].map(({ label, value }) => (
                     <div key={label} className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-semibold mt-0.5">{value || '-'}</p></div>
                   ))}

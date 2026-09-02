@@ -207,7 +207,7 @@ export default function SesiList() {
                     <TableHead>Kasir</TableHead>
                     <TableHead>Driver</TableHead>
                     <TableHead>Mobil</TableHead>
-                    <TableHead>Polisi</TableHead>
+                    <TableHead>Pengawal</TableHead>
                     <TableHead>Toko</TableHead>
                     <TableHead>Modal</TableHead>
                     <TableHead>Status</TableHead>

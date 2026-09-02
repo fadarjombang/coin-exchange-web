@@ -211,7 +211,7 @@ export default function Dashboard() {
                           <div className="flex items-start justify-between mb-3">
                             <div>
                               <p className="font-semibold">{s.kasir?.name}</p>
-                              <p className="text-sm text-muted-foreground">{s.mobil?.nopol} · Driver: {s.driver?.name} · Polisi: {s.nama_polisi || '-'}</p>
+                              <p className="text-sm text-muted-foreground">{s.mobil?.nopol} · Driver: {s.driver?.name} · Pengawal: {s.nama_polisi || '-'}</p>
                             </div>
                             <Badge variant="success">Aktif</Badge>
                           </div>

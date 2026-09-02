@@ -227,7 +227,7 @@ export default function SesiDetail() {
             { label: 'Kasir', value: sesi?.kasir?.name },
             { label: 'Driver', value: sesi?.driver?.name },
             { label: 'Kendaraan', value: sesi?.mobil?.nopol },
-            { label: 'Polisi / Pengawal', value: sesi?.nama_polisi },
+            { label: 'Pengawal', value: sesi?.nama_polisi },
             { label: 'Total Modal', value: formatRupiah(sesi?.modal_koin?.total_nilai) },
           ].map(({ label, value }) => (
             <Card key={label}><CardContent className="p-4"><p className="stat-label">{label}</p><p className="font-semibold mt-1">{value || '-'}</p></CardContent></Card>
