@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Eye, EyeOff, Coins, AlertCircle, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -65,9 +65,7 @@ export default function Login() {
       <div className="w-full max-w-sm relative z-10 animate-slide-up">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 mb-4 shadow-xl">
-            <Coins size={32} className="text-white" />
-          </div>
+          <img src="/idm-main-logo.png" alt="Indomaret" className="h-20 w-auto mx-auto mb-4 rounded-2xl shadow-xl" />
           <h1 className="text-2xl font-bold text-white tracking-tight">Sistem Tukar Koin</h1>
           <p className="text-blue-200 text-sm mt-1">Indomaret Cabang Jombang</p>
         </div>

@@ -129,9 +129,13 @@ export default function DashboardLayout({ children, pendingCount = 0 }) {
     <div className="flex flex-col h-full bg-[#1e3a5f]">
       {/* Logo */}
       <div className={cn('flex items-center gap-3 px-4 py-5', collapsed && 'justify-center')}>
-        <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center flex-shrink-0 shadow">
-          <Coins size={18} className="text-white" />
-        </div>
+        {collapsed ? (
+          <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center flex-shrink-0 shadow">
+            <Coins size={18} className="text-white" />
+          </div>
+        ) : (
+          <img src="/idm-main-logo.png" alt="Indomaret" className="h-8 w-auto rounded shadow flex-shrink-0" />
+        )}
         {!collapsed && (
           <div>
             <p className="text-white font-bold text-sm leading-tight">Tukar Koin</p>

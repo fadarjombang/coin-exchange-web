@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Store, ClipboardList, User, Coins, ArrowLeft } from 'lucide-react'
+import { Home, Store, ClipboardList, User, ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
@@ -25,9 +25,7 @@ export default function MobileLayout({ children, title, showBack = false, onBack
               <ArrowLeft size={20} />
             </button>
           ) : (
-            <div className="w-7 h-7 rounded-lg bg-teal-600 flex items-center justify-center flex-shrink-0">
-              <Coins size={15} className="text-white" />
-            </div>
+            <img src="/idm-main-logo.png" alt="Indomaret" className="h-7 w-auto rounded shadow flex-shrink-0" />
           )}
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm truncate">{title || 'Sistem Tukar Koin'}</p>
