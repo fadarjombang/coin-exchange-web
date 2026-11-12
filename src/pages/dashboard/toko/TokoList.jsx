@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Store, Plus, Search, History, Upload, Loader2, Download } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import DashboardLayout from '@/components/layout/DashboardLayout'
+import { fetchAllRows } from '@/lib/utils'
 
 export default function TokoList() {
   const navigate = useNavigate()
@@ -24,10 +25,11 @@ export default function TokoList() {
 
   const fetch = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase.from('toko').select('*').order('kode_toko')
+    const { data, error } = await fetchAllRows(() => supabase.from('toko').select('*').order('kode_toko').order('id'))
+    if (error) toast({ title: 'Gagal memuat toko', description: error.message, variant: 'destructive' })
     setToko(data || [])
     setLoading(false)
-  }, [])
+  }, [toast])
   useEffect(() => { fetch() }, [fetch])
 
   useEffect(() => {
@@ -43,17 +45,30 @@ export default function TokoList() {
       const buf = await file.arrayBuffer()
       const wb = XLSX.read(buf, { type: 'array' })
       const ws = wb.Sheets[wb.SheetNames[0]]
-      const json = XLSX.utils.sheet_to_json(ws, { defval: '' })
+      // raw:false → cell text as displayed, so codes like "0123" keep their leading zero
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false })
 
-      const rows = json.map((r) => ({
-        kode_toko: String(r['kode_toko'] || r['Kode Toko'] || r['KODE_TOKO'] || '').trim(),
-        nama_toko: String(r['nama_toko'] || r['Nama Toko'] || r['NAMA_TOKO'] || '').trim(),
-        area: String(r['area'] || r['Area'] || '').trim() || null,
-        alamat: String(r['alamat'] || r['Alamat'] || '').trim() || null,
-        as: String(r['as'] || r['AS'] || r['Area Supervisor'] || '').trim() || null,
-        am: String(r['am'] || r['AM'] || r['Area Manager'] || '').trim() || null,
-        is_active: true,
-      })).filter((r) => r.kode_toko && r.nama_toko)
+      // Normalize headers: "Kode Toko ", "KODE TOKO", "kode_toko" → "kode_toko"
+      const norm = (r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.trim().toLowerCase().replace(/\s+/g, '_'), String(v ?? '').trim()]))
+
+      const skipped = []
+      const byKode = new Map() // dedupe: last row wins (upsert fails on duplicate kode in one batch)
+      json.forEach((raw, i) => {
+        const r = norm(raw)
+        const row = {
+          kode_toko: r.kode_toko || '',
+          nama_toko: r.nama_toko || '',
+          area: r.area || null,
+          alamat: r.alamat || null,
+          as: r.as || r.area_supervisor || null,
+          am: r.am || r.area_manager || null,
+          is_active: true,
+        }
+        if (row.kode_toko && row.nama_toko) byKode.set(row.kode_toko, row)
+        else skipped.push(i + 2) // +2 = header row + 1-based
+      })
+      const rows = [...byKode.values()]
+      const dupCount = json.length - skipped.length - rows.length
 
       if (rows.length === 0) {
         toast({ title: 'File kosong', description: 'Tidak ada baris valid. Pastikan kolom: kode_toko, nama_toko, area, alamat, AS, AM', variant: 'destructive' })
@@ -63,7 +78,14 @@ export default function TokoList() {
       const { error } = await supabase.from('toko').upsert(rows, { onConflict: 'kode_toko' })
       if (error) throw error
 
-      toast({ title: `${rows.length} toko berhasil diimpor`, variant: 'success' })
+      const notes = []
+      if (skipped.length) notes.push(`${skipped.length} baris dilewati (kode/nama kosong): baris ${skipped.slice(0, 20).join(', ')}${skipped.length > 20 ? ', …' : ''}`)
+      if (dupCount) notes.push(`${dupCount} baris kode toko duplikat (dipakai baris terakhir)`)
+      toast({
+        title: `${rows.length} toko berhasil diimpor`,
+        description: notes.join('. ') || undefined,
+        variant: notes.length ? 'destructive' : 'success',
+      })
       fetch()
     } catch (err) {
       toast({ title: 'Import gagal', description: err.message, variant: 'destructive' })

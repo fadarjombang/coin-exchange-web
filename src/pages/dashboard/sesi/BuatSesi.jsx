@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, ArrowRight, Check, Loader2, ClipboardList, ChevronUp, ChevronDown } from 'lucide-react'
-import { formatRupiah, formatNumber, DENOM_LIST, calculateDenomTotal, todayISO, emptyDenoms } from '@/lib/utils'
+import { formatRupiah, formatNumber, DENOM_LIST, calculateDenomTotal, todayISO, emptyDenoms, fetchAllRows } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
 const STEPS = ['Tim & Kendaraan', 'Pilih Toko', 'Modal Koin', 'Review & Submit']
@@ -56,7 +56,7 @@ export default function BuatSesi() {
         supabase.from('users').select('id,name').contains('role', ['kasir']).eq('is_active', true),
         supabase.from('users').select('id,name').contains('role', ['driver']).eq('is_active', true),
         supabase.from('mobil').select('id,nopol').eq('is_active', true),
-        supabase.from('toko').select('id,kode_toko,nama_toko,area').eq('is_active', true).order('kode_toko'),
+        fetchAllRows(() => supabase.from('toko').select('id,kode_toko,nama_toko,area').eq('is_active', true).order('kode_toko').order('id')),
         supabase.from('stok_gudang').select('*').maybeSingle(),
         supabase.from('toko_assignment').select('toko_id, status'),
       ])

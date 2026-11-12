@@ -172,6 +172,21 @@ export function parseRp(raw) {
   const n = parseInt(String(raw).replace(/\D/g, ''), 10) || 0
   return Math.min(Math.max(n, 0), MAX_RP)
 }
+/**
+ * Fetch every row of a Supabase query, paging past the 1000-row API limit.
+ * `buildQuery` must return a fresh query builder each call (it gets .range()).
+ * Returns { data, error } like a normal Supabase call.
+ */
+export async function fetchAllRows(buildQuery, pageSize = 1000) {
+  const all = []
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await buildQuery().range(from, from + pageSize - 1)
+    if (error) return { data: all, error }
+    all.push(...data)
+    if (data.length < pageSize) return { data: all, error: null }
+  }
+}
+
 export function allTokoVisited(assignments) {
   return assignments.every((a) => a.status === 'selesai' || a.status === 'skip')
 }

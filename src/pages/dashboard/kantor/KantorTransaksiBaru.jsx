@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Loader2, ArrowLeft, Coins, Banknote, AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react'
-import { formatRupiah, DENOM_LIST, emptyDenoms } from '@/lib/utils'
+import { formatRupiah, DENOM_LIST, emptyDenoms, fetchAllRows } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
 export default function KantorTransaksiBaru() {
@@ -40,7 +40,7 @@ export default function KantorTransaksiBaru() {
   useEffect(() => {
     const loadData = async () => {
       const [tokoRes, stokRes] = await Promise.all([
-        supabase.from('toko').select('id,kode_toko,nama_toko,area').eq('is_active', true).order('kode_toko'),
+        fetchAllRows(() => supabase.from('toko').select('id,kode_toko,nama_toko,area').eq('is_active', true).order('kode_toko').order('id')),
         supabase.from('stok_gudang').select('*').maybeSingle()
       ])
       setTokos(tokoRes.data || [])

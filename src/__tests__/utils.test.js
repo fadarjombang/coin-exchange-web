@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  fetchAllRows,
   formatRupiah,
   formatNumber,
   formatDate,
@@ -199,5 +200,24 @@ describe('DENOM_LIST', () => {
     for (let i = 1; i < DENOM_LIST.length; i++) {
       expect(DENOM_LIST[i].value).toBeGreaterThan(DENOM_LIST[i - 1].value)
     }
+  })
+})
+
+describe('fetchAllRows', () => {
+  it('pages past the page size and stops on a short page', async () => {
+    const rows = Array.from({ length: 2500 }, (_, i) => ({ id: i }))
+    const calls = []
+    const build = () => ({
+      range: async (from, to) => { calls.push([from, to]); return { data: rows.slice(from, to + 1), error: null } },
+    })
+    const { data, error } = await fetchAllRows(build)
+    expect(error).toBeNull()
+    expect(data).toHaveLength(2500)
+    expect(calls).toEqual([[0, 999], [1000, 1999], [2000, 2999]])
+  })
+  it('returns the error from a failed page', async () => {
+    const build = () => ({ range: async () => ({ data: null, error: { message: 'boom' } }) })
+    const { error } = await fetchAllRows(build)
+    expect(error.message).toBe('boom')
   })
 })
